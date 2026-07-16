@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JobPilot Dashboard</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-brand">JobPilot</div>
+        <div class="nav-links">
+            <a href="#" class="nav-link active" data-page="dashboard">Dashboard</a>
+            <a href="#" class="nav-link" data-page="jobs">Jobs</a>
+            <a href="#" class="nav-link" data-page="applications">Applications</a>
+            <a href="#" class="nav-link" data-page="profile">Profile</a>
+        </div>
+    </nav>
+
+    <main class="container" id="app">
+        <!-- Dashboard -->
+        <section id="page-dashboard" class="page active">
+            <h1>Dashboard</h1>
+            <div class="stats-grid" id="stats-grid"></div>
+            <div class="section">
+                <h2>Top Matches</h2>
+                <div id="top-matches"></div>
+            </div>
+            <div class="section">
+                <h2>Quick Actions</h2>
+                <div class="actions">
+                    <button class="btn btn-primary" onclick="triggerScan()">Scan Jobs</button>
+                    <button class="btn btn-secondary" onclick="runMatch()">Run Matching</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Jobs -->
+        <section id="page-jobs" class="page">
+            <h1>Jobs</h1>
+            <div class="filters">
+                <input type="text" id="job-search" placeholder="Search jobs..." class="input">
+                <select id="job-source" class="input">
+                    <option value="">All Sources</option>
+                    <option value="greenhouse">Greenhouse</option>
+                    <option value="remoteok">RemoteOK</option>
+                </select>
+                <button class="btn btn-primary" onclick="loadJobs()">Filter</button>
+            </div>
+            <div id="jobs-list"></div>
+        </section>
+
+        <!-- Applications -->
+        <section id="page-applications" class="page">
+            <h1>Applications</h1>
+            <div id="applications-list"></div>
+        </section>
+
+        <!-- Profile -->
+        <section id="page-profile" class="page">
+            <h1>Your Profile</h1>
+            <form id="profile-form" class="form-grid">
+                <div class="form-group">
+                    <label>Name</label>
+                    <input type="text" name="name" class="input">
+                </div>
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" name="email" class="input">
+                </div>
+                <div class="form-group">
+                    <label>Phone</label>
+                    <input type="text" name="phone" class="input">
+                </div>
+                <div class="form-group">
+                    <label>Location</label>
+                    <input type="text" name="location" class="input">
+                </div>
+                <div class="form-group">
+                    <label>Country</label>
+                    <input type="text" name="country" class="input">
+                </div>
+                <div class="form-group">
+                    <label>LinkedIn</label>
+                    <input type="url" name="linkedin" class="input">
+                </div>
+                <div class="form-group">
+                    <label>GitHub</label>
+                    <input type="url" name="github" class="input">
+                </div>
+                <div class="form-group">
+                    <label>Portfolio</label>
+                    <input type="url" name="portfolio" class="input">
+                </div>
+                <div class="form-group">
+                    <label>Experience (years)</label>
+                    <input type="number" name="experience_years" class="input" min="0">
+                </div>
+                <div class="form-group">
+                    <label>Remote Preference</label>
+                    <select name="remote_preference" class="input">
+                        <option value="remote">Remote</option>
+                        <option value="hybrid">Hybrid</option>
+                        <option value="onsite">On-site</option>
+                        <option value="any">Any</option>
+                    </select>
+                </div>
+                <div class="form-group full-width">
+                    <label>Skills (comma-separated)</label>
+                    <input type="text" name="skills" class="input" placeholder="python, react, aws, docker...">
+                </div>
+                <div class="form-group full-width">
+                    <label>Programming Languages (comma-separated)</label>
+                    <input type="text" name="programming_languages" class="input" placeholder="python, javascript, typescript...">
+                </div>
+                <div class="form-group full-width">
+                    <label>Frameworks (comma-separated)</label>
+                    <input type="text" name="frameworks" class="input" placeholder="fastapi, react, django...">
+                </div>
+                <div class="form-group full-width">
+                    <label>Cloud Platforms (comma-separated)</label>
+                    <input type="text" name="cloud_platforms" class="input" placeholder="aws, gcp, azure...">
+                </div>
+                <div class="form-group full-width">
+                    <label>Preferred Roles (comma-separated)</label>
+                    <input type="text" name="preferred_roles" class="input" placeholder="software engineer, ml engineer...">
+                </div>
+                <div class="form-group full-width">
+                    <label>Preferred Locations (comma-separated)</label>
+                    <input type="text" name="preferred_locations" class="input" placeholder="remote, san francisco, new york...">
+                </div>
+                <div class="form-group">
+                    <label>Expected Salary</label>
+                    <input type="text" name="expected_salary" class="input" placeholder="$150,000 - $200,000">
+                </div>
+                <div class="form-group full-width">
+                    <button type="submit" class="btn btn-primary">Save Profile</button>
+                </div>
+            </form>
+        </section>
+    </main>
+
+    <div id="toast" class="toast hidden"></div>
+    <script src="/static/app.js"></script>
+</body>
+</html>

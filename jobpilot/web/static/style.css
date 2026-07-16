@@ -1,0 +1,223 @@
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+    --bg: #0f1117;
+    --bg-card: #1a1d27;
+    --bg-input: #252833;
+    --border: #2d3040;
+    --text: #e4e6f0;
+    --text-dim: #8b8fa3;
+    --primary: #6c5ce7;
+    --primary-hover: #7c6df7;
+    --green: #00d2a0;
+    --yellow: #ffc048;
+    --red: #ff6b6b;
+    --blue: #4fc3f7;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+}
+
+.navbar {
+    display: flex;
+    align-items: center;
+    padding: 0 2rem;
+    height: 56px;
+    background: var(--bg-card);
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.nav-brand {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--primary);
+    margin-right: 2rem;
+}
+
+.nav-links { display: flex; gap: 1.5rem; }
+
+.nav-link {
+    color: var(--text-dim);
+    text-decoration: none;
+    font-size: 0.9rem;
+    padding: 0.3rem 0;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+}
+
+.nav-link:hover, .nav-link.active {
+    color: var(--text);
+    border-bottom-color: var(--primary);
+}
+
+.container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+
+h1 { font-size: 1.8rem; margin-bottom: 1.5rem; }
+h2 { font-size: 1.2rem; margin-bottom: 1rem; color: var(--text-dim); }
+
+.page { display: none; }
+.page.active { display: block; }
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.stat-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.2rem;
+}
+
+.stat-card .label { font-size: 0.8rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.05em; }
+.stat-card .value { font-size: 2rem; font-weight: 700; margin-top: 0.3rem; }
+.stat-card .value.green { color: var(--green); }
+.stat-card .value.blue { color: var(--blue); }
+.stat-card .value.yellow { color: var(--yellow); }
+
+.section { margin-bottom: 2rem; }
+
+.job-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.2rem;
+    margin-bottom: 0.8rem;
+    transition: border-color 0.2s;
+    cursor: pointer;
+}
+
+.job-card:hover { border-color: var(--primary); }
+
+.job-card .job-header { display: flex; justify-content: space-between; align-items: flex-start; }
+.job-card .job-title { font-weight: 600; font-size: 1rem; }
+.job-card .job-company { color: var(--primary); font-size: 0.9rem; }
+.job-card .job-meta { color: var(--text-dim); font-size: 0.85rem; margin-top: 0.4rem; }
+.job-card .job-score {
+    font-weight: 700;
+    font-size: 1.1rem;
+    padding: 0.2rem 0.6rem;
+    border-radius: 6px;
+    min-width: 3rem;
+    text-align: center;
+}
+.job-card .job-score.high { background: rgba(0,210,160,0.15); color: var(--green); }
+.job-card .job-score.mid { background: rgba(255,192,72,0.15); color: var(--yellow); }
+.job-card .job-score.low { background: rgba(255,107,107,0.15); color: var(--red); }
+.job-card .job-skills { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.6rem; }
+.job-card .skill-tag {
+    background: var(--bg-input);
+    color: var(--text-dim);
+    font-size: 0.75rem;
+    padding: 0.15rem 0.5rem;
+    border-radius: 4px;
+}
+.job-card .missing-tag {
+    background: rgba(255,107,107,0.1);
+    color: var(--red);
+    font-size: 0.75rem;
+    padding: 0.15rem 0.5rem;
+    border-radius: 4px;
+}
+
+.filters { display: flex; gap: 0.8rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+
+.input {
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 0.5rem 0.8rem;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.input:focus { border-color: var(--primary); }
+
+.btn {
+    padding: 0.5rem 1.2rem;
+    border-radius: 6px;
+    border: none;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-primary { background: var(--primary); color: white; }
+.btn-primary:hover { background: var(--primary-hover); }
+.btn-secondary { background: var(--bg-input); color: var(--text); border: 1px solid var(--border); }
+.btn-secondary:hover { border-color: var(--primary); }
+
+.actions { display: flex; gap: 0.8rem; }
+
+.form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.form-group { display: flex; flex-direction: column; gap: 0.3rem; }
+.form-group.full-width { grid-column: 1 / -1; }
+.form-group label { font-size: 0.85rem; color: var(--text-dim); }
+.form-group .input { width: 100%; }
+
+.app-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1rem 1.2rem;
+    margin-bottom: 0.8rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.app-card .app-info { flex: 1; }
+.app-card .app-status {
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 0.2rem 0.7rem;
+    border-radius: 20px;
+    text-transform: uppercase;
+}
+
+.status-discovered { background: rgba(139,143,163,0.15); color: var(--text-dim); }
+.status-applied { background: rgba(79,195,247,0.15); color: var(--blue); }
+.status-interview { background: rgba(0,210,160,0.15); color: var(--green); }
+.status-rejected { background: rgba(255,107,107,0.15); color: var(--red); }
+.status-offer { background: rgba(255,192,72,0.15); color: var(--yellow); }
+
+.toast {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    background: var(--green);
+    color: white;
+    padding: 0.8rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 500;
+    transition: opacity 0.3s;
+    z-index: 200;
+}
+
+.toast.hidden { opacity: 0; pointer-events: none; }
+
+.empty-state { text-align: center; padding: 3rem; color: var(--text-dim); }
+
+.match-breakdown { margin-top: 0.6rem; }
+.match-bar { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.3rem; font-size: 0.8rem; }
+.match-bar .bar-label { width: 90px; color: var(--text-dim); }
+.match-bar .bar-track { flex: 1; height: 6px; background: var(--bg-input); border-radius: 3px; overflow: hidden; }
+.match-bar .bar-fill { height: 100%; background: var(--primary); border-radius: 3px; transition: width 0.3s; }

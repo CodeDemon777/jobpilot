@@ -1,0 +1,45 @@
+name: Tivya
+email: tivya@example.com
+phone: ''
+location: remote
+country: global
+linkedin: ''
+github: ''
+portfolio: ''
+skills:
+- python
+- javascript
+- react
+- fastapi
+- docker
+- aws
+- postgresql
+- git
+programming_languages:
+- python
+- javascript
+- typescript
+- go
+frameworks:
+- fastapi
+- react
+- django
+- node.js
+cloud_platforms:
+- aws
+- docker
+- kubernetes
+experience_years: 4
+education:
+- degree: B.S. Computer Science
+  school: University
+preferred_roles:
+- software engineer
+- backend developer
+- full stack
+preferred_locations:
+- remote
+remote_preference: remote
+expected_salary: ''
+visa_sponsorship: false
+work_authorization: ''
