@@ -246,7 +246,12 @@ def get_top_matches(limit: int = 20, db_path: Path = DB_PATH) -> list[tuple[JobL
     conn = get_connection(db_path)
     try:
         rows = conn.execute("""
-            SELECT j.*, m.overall_score, m.skills_score, m.experience_score,
+            SELECT j.company, j.title, j.department, j.location, j.remote_status,
+                   j.employment_type, j.salary_min, j.salary_max, j.currency, j.required_skills,
+                   j.preferred_skills, j.experience_years, j.education, j.description, j.url,
+                   j.source, j.posted_date, j.application_url, j.tech_stack, j.visa_required,
+                   j.discovered_at,
+                   m.job_id AS m_job_id, m.overall_score, m.skills_score, m.experience_score,
                    m.relevance_score, m.education_score, m.role_score, m.location_score,
                    m.strengths, m.weaknesses, m.missing_skills
             FROM jobs j
@@ -258,7 +263,7 @@ def get_top_matches(limit: int = 20, db_path: Path = DB_PATH) -> list[tuple[JobL
         for row in rows:
             job = _row_to_job(row)
             match = MatchResult(
-                job_id=row["job_id"],
+                job_id=row["m_job_id"],
                 overall_score=row["overall_score"],
                 skills_score=row["skills_score"],
                 experience_score=row["experience_score"],
