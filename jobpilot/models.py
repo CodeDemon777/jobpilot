@@ -136,3 +136,20 @@ class Company:
     career_page: str = ""
     job_count: int = 0
     notes: str = ""
+
+
+@dataclass
+class Resume:
+    """A stored resume record."""
+    id: str = ""
+    name: str = ""
+    filename: str = ""
+    raw_text: str = ""
+    target_role: str = ""
+    created_at: str = field(default_factory=lambda: datetime.now().isoformat())
+
+    def to_dict(self) -> dict:
+        d = asdict(self)
+        # Don't include raw_text in default serialization (too large)
+        d.pop("raw_text", None)
+        return d

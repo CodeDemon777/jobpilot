@@ -12,21 +12,16 @@ from jobpilot.models import JobListing
 
 logger = logging.getLogger(__name__)
 
-# Popular companies on Greenhouse — verified board tokens
+# Popular companies on Greenhouse — verified board tokens (2024-07)
 KNOWN_GREENHOUSE_BOARDS = {
     "discord": "discord",
     "figma": "figma",
     "gitlab": "gitlab",
-    "stripe": "stripe",
     "twitch": "twitch",
     "airbnb": "airbnb",
     "databricks": "databricks",
-    "doordash": "doordash",
     "lyft": "lyft",
     "pinterest": "pinterest",
-    "postmates": "postmates",
-    "snap": "snapinc",
-    "twitter": "twitter",
     "ubiquiti": "ubiquiti",
     "waymo": "waymo",
 }

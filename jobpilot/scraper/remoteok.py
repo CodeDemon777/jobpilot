@@ -59,7 +59,7 @@ class RemoteOKScraper(BaseScraper):
 
         # Extract tags as skills
         tags = data.get("tags", [])
-        if isinstance(tags, list):
+        if isinstance(tags, list) and tags:
             skills = [str(t).lower() for t in tags]
         else:
             skills = self._extract_skills(description)

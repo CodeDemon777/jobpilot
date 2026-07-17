@@ -10,8 +10,9 @@ from pydantic import BaseModel
 from jobpilot import database as db
 from jobpilot.profile import load_profile, save_profile
 from jobpilot.matcher import compute_match
-from jobpilot.models import UserProfile, Application, Company
+from jobpilot.models import UserProfile, Application, Company, Resume
 from jobpilot.config import DATA_DIR
+from jobpilot.resume_analyzer import analyze_resume
 
 app = FastAPI(title="JobPilot", version="0.1.0")
 
@@ -63,6 +64,12 @@ class ScanRequest(BaseModel):
 class MatchRequest(BaseModel):
     min_score: float = 0.5
     limit: int = 20
+
+
+class ResumeAnalyzeRequest(BaseModel):
+    text: str
+    target_role: str = ""
+    filename: str = "pasted_resume"
 
 
 # --- Routes ---
@@ -238,3 +245,73 @@ async def list_companies():
     """List tracked companies."""
     companies = db.get_companies()
     return {"companies": [c.__dict__ for c in companies], "total": len(companies)}
+
+
+# --- Resume Analysis ---
+
+@app.post("/api/resume/analyze")
+async def analyze_resume_api(request: ResumeAnalyzeRequest):
+    """Analyze a resume from pasted text."""
+    import hashlib
+
+    if not request.text.strip():
+        raise HTTPException(status_code=400, detail="Resume text is empty")
+
+    result = analyze_resume(request.text, target_role=request.target_role)
+
+    # Save to database
+    resume_id = hashlib.sha256(request.text.encode()).hexdigest()[:16]
+    resume = Resume(
+        id=resume_id,
+        name=request.filename,
+        filename=request.filename,
+        raw_text=request.text,
+        target_role=request.target_role,
+    )
+    db.upsert_resume(resume)
+    db.save_resume_analysis(
+        resume_id=resume_id,
+        ats_score=result.ats_score,
+        resume_quality_score=result.resume_quality_score,
+        technical_strength_score=result.technical_strength_score,
+        hiring_readiness_score=result.hiring_readiness_score,
+        skills=result.skills,
+        strengths=result.strengths,
+        weaknesses=result.weaknesses,
+        missing_skills=result.missing_skills,
+        suggestions=result.suggestions,
+    )
+
+    output = result.to_dict()
+    output["resume_id"] = resume_id
+    return output
+
+
+@app.get("/api/resume/history")
+async def resume_history():
+    """List all previously analyzed resumes."""
+    resumes = db.get_all_resumes()
+    return {"resumes": [r.to_dict() for r in resumes], "total": len(resumes)}
+
+
+@app.get("/api/resume/{resume_id}")
+async def get_resume_analysis(resume_id: str):
+    """Get analysis details for a specific resume."""
+    resume = db.get_resume(resume_id)
+    if not resume:
+        raise HTTPException(status_code=404, detail="Resume not found")
+
+    analyses = db.get_resume_analyses(resume_id)
+    return {
+        "resume": resume.to_dict(),
+        "analyses": analyses,
+    }
+
+
+@app.delete("/api/resume/{resume_id}")
+async def delete_resume_api(resume_id: str):
+    """Delete a resume and its analyses."""
+    found = db.delete_resume(resume_id)
+    if not found:
+        raise HTTPException(status_code=404, detail="Resume not found")
+    return {"deleted": True}

@@ -8,11 +8,12 @@ from pathlib import Path
 # Add project to path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from jobpilot.models import UserProfile, JobListing, MatchResult, Application, Company, _generate_id
+from jobpilot.models import UserProfile, JobListing, MatchResult, Application, Company, Resume, _generate_id
 from jobpilot.config import WEIGHTS, MATCH_THRESHOLD
 from jobpilot import database as db
 from jobpilot.profile import load_profile, save_profile
 from jobpilot.matcher import compute_match
+from jobpilot.resume_analyzer import analyze_resume, ResumeAnalysisResult, _extract_skills, _detect_sections, _compute_ats_score
 
 PASS = 0
 FAIL = 0
@@ -398,6 +399,185 @@ def test_top_matches():
         assert "Co" in job.company
 
 test("Integration: top matches query", test_top_matches)
+
+
+# ========== RESUME ANALYZER TESTS ==========
+print("\n=== Resume Analyzer ===")
+
+SAMPLE_RESUME = """
+John Doe
+john@example.com | (555) 123-4567 | linkedin.com/in/johndoe | github.com/johndoe
+
+Summary
+Senior Software Engineer with 6 years of experience building scalable web applications.
+Passionate about clean code and mentoring junior developers.
+
+Experience
+Senior Software Engineer | TechCorp | 2021 - Present
+- Built microservices architecture serving 10M+ requests/day using Python and FastAPI
+- Led migration from monolith to microservices, reducing deploy time by 60%
+- Implemented CI/CD pipelines with GitHub Actions and Docker
+
+Software Engineer | StartupXYZ | 2018 - 2021
+- Developed React frontend used by 50K+ users
+- Designed RESTful APIs with Node.js and PostgreSQL
+- Improved application performance by 40% through query optimization
+
+Education
+B.S. Computer Science | Stanford University | 2018
+
+Skills
+Python, JavaScript, TypeScript, React, Node.js, FastAPI, Django, PostgreSQL,
+Docker, Kubernetes, AWS, Redis, Git, GraphQL, REST API, CI/CD
+
+Certifications
+AWS Solutions Architect - Associate
+"""
+
+def test_resume_skill_extraction():
+    skills = _extract_skills(SAMPLE_RESUME)
+    assert "python" in skills
+    assert "react" in skills
+    assert "docker" in skills
+    assert "aws" in skills
+    assert "postgresql" in skills
+    assert "fastapi" in skills
+    assert "kubernetes" in skills
+
+test("Resume: skill extraction", test_resume_skill_extraction)
+
+def test_resume_section_detection():
+    sections = _detect_sections(SAMPLE_RESUME)
+    assert "experience" in sections
+    assert "education" in sections
+    assert "skills" in sections
+    assert "summary" in sections
+    assert "certifications" in sections
+
+test("Resume: section detection", test_resume_section_detection)
+
+def test_resume_full_analysis():
+    result = analyze_resume(SAMPLE_RESUME)
+    assert isinstance(result, ResumeAnalysisResult)
+    assert len(result.skills) >= 10
+    assert result.experience_years >= 4
+    assert result.ats_score > 0.5
+    assert len(result.strengths) > 0
+    assert len(result.suggestions) > 0
+    assert result.email == "john@example.com"
+
+test("Resume: full analysis", test_resume_full_analysis)
+
+def test_resume_ats_score_range():
+    result = analyze_resume(SAMPLE_RESUME)
+    assert 0.0 <= result.ats_score <= 1.0
+    assert 0.0 <= result.resume_quality_score <= 1.0
+    assert 0.0 <= result.technical_strength_score <= 1.0
+    assert 0.0 <= result.hiring_readiness_score <= 1.0
+
+test("Resume: scores in valid range", test_resume_ats_score_range)
+
+def test_resume_empty_text():
+    result = analyze_resume("")
+    assert len(result.skills) == 0
+    assert result.ats_score < 0.3
+    assert len(result.suggestions) > 0  # Should suggest improvements
+
+test("Resume: empty text handled", test_resume_empty_text)
+
+def test_resume_minimal():
+    minimal = "Jane Smith\nJane is a developer who knows Python and JavaScript."
+    result = analyze_resume(minimal)
+    assert "python" in result.skills
+    assert "javascript" in result.skills
+    assert len(result.suggestions) > 0  # Should suggest many improvements
+
+test("Resume: minimal resume", test_resume_minimal)
+
+def test_resume_target_role_gap():
+    result = analyze_resume(SAMPLE_RESUME, target_role="devops engineer")
+    # Should identify missing devops skills
+    assert isinstance(result.missing_skills, list)
+
+test("Resume: target role gap analysis", test_resume_target_role_gap)
+
+def test_resume_to_dict():
+    result = analyze_resume(SAMPLE_RESUME)
+    d = result.to_dict()
+    assert isinstance(d, dict)
+    assert "scores" in d
+    assert "skills" in d
+    assert "strengths" in d
+    assert "suggestions" in d
+    assert isinstance(d["scores"], dict)
+
+test("Resume: to_dict serialization", test_resume_to_dict)
+
+def test_resume_db_storage():
+    cleanup_test_db()
+    resume = Resume(
+        id="test_resume_1",
+        name="test_resume",
+        filename="test.txt",
+        raw_text=SAMPLE_RESUME,
+        target_role="backend engineer",
+    )
+    is_new = db.upsert_resume(resume, TEST_DB)
+    assert is_new == True
+
+    fetched = db.get_resume("test_resume_1", TEST_DB)
+    assert fetched is not None
+    assert fetched.name == "test_resume"
+    assert fetched.raw_text == SAMPLE_RESUME
+
+    # Save analysis
+    db.save_resume_analysis(
+        resume_id="test_resume_1",
+        ats_score=0.85,
+        resume_quality_score=0.80,
+        technical_strength_score=0.90,
+        hiring_readiness_score=0.82,
+        skills=["python", "react"],
+        strengths=["Strong skills"],
+        weaknesses=["Missing summary"],
+        missing_skills=["rust"],
+        suggestions=["Add more projects"],
+        db_path=TEST_DB,
+    )
+
+    analyses = db.get_resume_analyses("test_resume_1", TEST_DB)
+    assert len(analyses) == 1
+    assert analyses[0]["ats_score"] == 0.85
+    assert "python" in analyses[0]["skills"]
+
+test("Resume: DB storage and retrieval", test_resume_db_storage)
+
+def test_resume_db_list():
+    cleanup_test_db()
+    for i in range(3):
+        r = Resume(id=f"r{i}", name=f"resume_{i}", filename=f"f{i}.txt", raw_text="text")
+        db.upsert_resume(r, TEST_DB)
+    resumes = db.get_all_resumes(TEST_DB)
+    assert len(resumes) == 3
+
+test("Resume: DB list all", test_resume_db_list)
+
+def test_resume_db_delete():
+    cleanup_test_db()
+    r = Resume(id="del_test", name="delete_me", filename="x.txt", raw_text="text")
+    db.upsert_resume(r, TEST_DB)
+    db.save_resume_analysis(
+        resume_id="del_test", ats_score=0.5, resume_quality_score=0.5,
+        technical_strength_score=0.5, hiring_readiness_score=0.5,
+        skills=[], strengths=[], weaknesses=[], missing_skills=[], suggestions=[],
+        db_path=TEST_DB,
+    )
+    found = db.delete_resume("del_test", TEST_DB)
+    assert found == True
+    assert db.get_resume("del_test", TEST_DB) is None
+    assert len(db.get_resume_analyses("del_test", TEST_DB)) == 0
+
+test("Resume: DB delete cascades", test_resume_db_delete)
 
 
 # ========== CLEANUP ==========

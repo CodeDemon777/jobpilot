@@ -1,11 +1,15 @@
 """Configuration and paths for JobPilot."""
 
+import os
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DATA_DIR = PROJECT_ROOT / "data"
 DB_PATH = DATA_DIR / "jobpilot.db"
 PROFILE_PATH = DATA_DIR / "profile.yaml"
+
+# API keys (loaded from environment variables — never hardcode)
+API_KEY = os.environ.get("JOBPILOT_API_KEY", "")
 
 # Matching thresholds
 MATCH_THRESHOLD = 0.5

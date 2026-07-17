@@ -19,11 +19,12 @@ from rich.panel import Panel
 from rich import box
 
 from jobpilot.config import MATCH_THRESHOLD, DEFAULT_PORT
-from jobpilot.models import JobListing, Application
+from jobpilot.models import JobListing, Application, Resume
 from jobpilot import database as db
 from jobpilot.profile import load_profile, save_profile, update_profile
 from jobpilot.matcher import compute_match
 from jobpilot.scraper import SCRAPERS
+from jobpilot.resume_analyzer import analyze_resume, ResumeAnalysisResult
 
 app = typer.Typer(
     name="jobpilot",
@@ -393,6 +394,202 @@ def seed():
 
     print(f"[OK] Seeded {len(sample_jobs)} sample jobs ({new_count} new)")
     print("Run 'jobpilot match' to see match scores against your profile.")
+
+
+# --- Resume Command ---
+
+resume_app = typer.Typer(help="Analyze and manage resumes")
+app.add_typer(resume_app, name="resume")
+
+
+@resume_app.command("analyze")
+def resume_analyze(
+    file: str = typer.Argument(help="Path to resume file (.txt, .md)"),
+    target_role: str = typer.Option("", help="Target role for gap analysis (e.g. 'backend engineer')"),
+):
+    """Analyze a resume for ATS compatibility, skills, and improvements."""
+    from pathlib import Path
+    import hashlib
+
+    file_path = Path(file)
+    if not file_path.exists():
+        console.print(f"[red]File not found: {file}[/]")
+        return
+
+    # Read file
+    try:
+        text = file_path.read_text(encoding="utf-8")
+    except Exception as e:
+        console.print(f"[red]Error reading file: {e}[/]")
+        return
+
+    if not text.strip():
+        console.print("[red]File is empty.[/]")
+        return
+
+    console.print(Panel(f"[bold blue]Analyzing resume: {file_path.name}[/]", title="JobPilot Resume Analyzer"))
+
+    # Run analysis
+    result = analyze_resume(text, target_role=target_role)
+
+    # Save to database
+    resume_id = hashlib.sha256(text.encode()).hexdigest()[:16]
+    resume = Resume(
+        id=resume_id,
+        name=file_path.stem,
+        filename=file_path.name,
+        raw_text=text,
+        target_role=target_role,
+    )
+    db.upsert_resume(resume)
+    db.save_resume_analysis(
+        resume_id=resume_id,
+        ats_score=result.ats_score,
+        resume_quality_score=result.resume_quality_score,
+        technical_strength_score=result.technical_strength_score,
+        hiring_readiness_score=result.hiring_readiness_score,
+        skills=result.skills,
+        strengths=result.strengths,
+        weaknesses=result.weaknesses,
+        missing_skills=result.missing_skills,
+        suggestions=result.suggestions,
+    )
+
+    # Display results
+    _display_resume_analysis(result)
+
+
+@resume_app.command("text")
+def resume_analyze_text(
+    target_role: str = typer.Option("", help="Target role for gap analysis"),
+):
+    """Analyze resume text pasted from stdin."""
+    import hashlib
+
+    console.print("[dim]Paste your resume text, then press Ctrl+D (Unix) or Ctrl+Z (Windows) to finish:[/]")
+    try:
+        text = sys.stdin.read()
+    except KeyboardInterrupt:
+        console.print("[yellow]Cancelled.[/]")
+        return
+
+    if not text.strip():
+        console.print("[red]No text provided.[/]")
+        return
+
+    console.print(Panel("[bold blue]Analyzing resume text...[/]", title="JobPilot Resume Analyzer"))
+
+    result = analyze_resume(text, target_role=target_role)
+
+    resume_id = hashlib.sha256(text.encode()).hexdigest()[:16]
+    resume = Resume(
+        id=resume_id,
+        name="pasted_resume",
+        filename="stdin",
+        raw_text=text,
+        target_role=target_role,
+    )
+    db.upsert_resume(resume)
+    db.save_resume_analysis(
+        resume_id=resume_id,
+        ats_score=result.ats_score,
+        resume_quality_score=result.resume_quality_score,
+        technical_strength_score=result.technical_strength_score,
+        hiring_readiness_score=result.hiring_readiness_score,
+        skills=result.skills,
+        strengths=result.strengths,
+        weaknesses=result.weaknesses,
+        missing_skills=result.missing_skills,
+        suggestions=result.suggestions,
+    )
+
+    _display_resume_analysis(result)
+
+
+@resume_app.command("history")
+def resume_history():
+    """List all previously analyzed resumes."""
+    resumes = db.get_all_resumes()
+    if not resumes:
+        console.print("[yellow]No resumes analyzed yet.[/]")
+        return
+
+    table = Table(title="Resume History", box=box.ROUNDED)
+    table.add_column("ID", style="dim", width=16)
+    table.add_column("Name", style="cyan")
+    table.add_column("Filename", style="white")
+    table.add_column("Target Role", style="green")
+    table.add_column("Analyzed", style="dim")
+
+    for r in resumes:
+        table.add_row(
+            r.id[:12] + "...",
+            r.name or "-",
+            r.filename or "-",
+            r.target_role or "-",
+            r.created_at[:10] if r.created_at else "-",
+        )
+
+    console.print(table)
+
+
+def _display_resume_analysis(result: ResumeAnalysisResult) -> None:
+    """Display resume analysis results in the terminal."""
+    # Scores
+    def score_bar(score: float) -> str:
+        pct = int(score * 100)
+        filled = "█" * (pct // 5)
+        empty = "░" * (20 - pct // 5)
+        if pct >= 80:
+            color = "green"
+        elif pct >= 60:
+            color = "yellow"
+        else:
+            color = "red"
+        return f"[{color}]{filled}{empty}[/] {pct}%"
+
+    scores_content = f"""[bold]ATS Compatibility:[/]        {score_bar(result.ats_score)}
+[bold]Resume Quality:[/]            {score_bar(result.resume_quality_score)}
+[bold]Technical Strength:[/]       {score_bar(result.technical_strength_score)}
+[bold]Hiring Readiness:[/]         {score_bar(result.hiring_readiness_score)}"""
+    console.print(Panel(scores_content.strip(), title="Scores", border_style="blue"))
+
+    # Skills
+    if result.skills:
+        console.print(f"\n[bold green]Skills Detected ({len(result.skills)}):[/]")
+        console.print(f"  {', '.join(result.skills)}")
+
+    # Experience & Education
+    if result.experience_years:
+        console.print(f"\n[bold]Experience:[/] {result.experience_years} years")
+    if result.education:
+        console.print(f"[bold]Education:[/]")
+        for edu in result.education:
+            console.print(f"  • {edu}")
+
+    # Strengths
+    if result.strengths:
+        console.print(f"\n[bold green]Strengths:[/]")
+        for s in result.strengths:
+            console.print(f"  [green]✓[/] {s}")
+
+    # Weaknesses
+    if result.weaknesses:
+        console.print(f"\n[bold red]Weaknesses:[/]")
+        for w in result.weaknesses:
+            console.print(f"  [red]✗[/] {w}")
+
+    # Missing skills
+    if result.missing_skills:
+        console.print(f"\n[bold yellow]Missing Skills for Target Role:[/]")
+        for s in result.missing_skills:
+            console.print(f"  [yellow]•[/] {s}")
+
+    # Suggestions
+    if result.suggestions:
+        console.print(f"\n[bold blue]Improvement Suggestions:[/]")
+        for i, s in enumerate(result.suggestions, 1):
+            console.print(f"  [blue]{i}.[/] {s}")
 
 
 # --- Serve Command ---

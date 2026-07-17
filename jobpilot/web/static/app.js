@@ -117,17 +117,109 @@ document.getElementById('profile-form').addEventListener('submit', async (e) => 
 
 // --- Actions ---
 async function triggerScan() {
-    showToast('Scanning...');
-    const result = await api('POST', '/api/scan', { source: 'all', role: '', location: '' });
-    showToast(`Found ${result.jobs_found} jobs!`);
-    loadDashboard();
+    showToast('Scanning jobs...');
+    try {
+        const result = await api('POST', '/api/scan', { source: 'all', role: '', location: '' });
+        showToast(`Found ${result.jobs_found} jobs from ${result.sources.join(', ')}!`);
+        loadDashboard();
+    } catch (err) {
+        showToast('Scan failed — check server logs.');
+    }
 }
 
 async function runMatch() {
     showToast('Matching...');
-    const result = await api('POST', '/api/match/run', { min_score: 0.5, limit: 20 });
-    showToast(`Matched ${result.total} jobs!`);
-    loadDashboard();
+    try {
+        const result = await api('POST', '/api/match/run', { min_score: 0.5, limit: 20 });
+        showToast(`Matched ${result.total} jobs!`);
+        loadDashboard();
+    } catch (err) {
+        showToast('Matching failed — run a scan first.');
+    }
+}
+
+// --- Resume Analyzer ---
+document.getElementById('resume-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const text = document.getElementById('resume-text').value.trim();
+    if (!text) { showToast('Please paste your resume text.'); return; }
+
+    const targetRole = document.getElementById('resume-target-role').value.trim();
+    showToast('Analyzing resume...');
+
+    try {
+        const result = await api('POST', '/api/resume/analyze', { text, target_role: targetRole });
+        displayResumeResults(result);
+        loadResumeHistory();
+        showToast('Analysis complete!');
+    } catch (err) {
+        showToast('Error analyzing resume.');
+    }
+});
+
+function displayResumeResults(result) {
+    const container = document.getElementById('resume-results');
+    container.style.display = 'block';
+
+    // Scores
+    const scores = result.scores;
+    document.getElementById('resume-scores').innerHTML = `
+        <div class="stats-grid">
+            <div class="stat-card"><div class="label">ATS Score</div><div class="value ${scoreColor(scores.ats_score)}">${(scores.ats_score * 100).toFixed(0)}%</div></div>
+            <div class="stat-card"><div class="label">Quality</div><div class="value ${scoreColor(scores.resume_quality_score)}">${(scores.resume_quality_score * 100).toFixed(0)}%</div></div>
+            <div class="stat-card"><div class="label">Technical</div><div class="value ${scoreColor(scores.technical_strength_score)}">${(scores.technical_strength_score * 100).toFixed(0)}%</div></div>
+            <div class="stat-card"><div class="label">Hiring Ready</div><div class="value ${scoreColor(scores.hiring_readiness_score)}">${(scores.hiring_readiness_score * 100).toFixed(0)}%</div></div>
+        </div>
+    `;
+
+    // Skills
+    document.getElementById('resume-skills').innerHTML = result.skills.length > 0
+        ? `<h3>Skills Detected (${result.skills.length})</h3><div class="job-skills">${result.skills.map(s => `<span class="skill-tag">${s}</span>`).join('')}</div>`
+        : '';
+
+    // Strengths
+    document.getElementById('resume-strengths').innerHTML = result.strengths.length > 0
+        ? `<h3 style="color:var(--green)">Strengths</h3><ul>${result.strengths.map(s => `<li>✓ ${s}</li>`).join('')}</ul>`
+        : '';
+
+    // Weaknesses
+    document.getElementById('resume-weaknesses').innerHTML = result.weaknesses.length > 0
+        ? `<h3 style="color:var(--red)">Weaknesses</h3><ul>${result.weaknesses.map(w => `<li>✗ ${w}</li>`).join('')}</ul>`
+        : '';
+
+    // Suggestions
+    document.getElementById('resume-suggestions').innerHTML = result.suggestions.length > 0
+        ? `<h3 style="color:var(--blue)">Improvement Suggestions</h3><ol>${result.suggestions.map(s => `<li>${s}</li>`).join('')}</ol>`
+        : '';
+
+    // Missing skills
+    document.getElementById('resume-missing').innerHTML = result.missing_skills.length > 0
+        ? `<h3 style="color:var(--yellow)">Missing Skills for ${result.target_role || 'Target Role'}</h3><div class="job-skills">${result.missing_skills.map(s => `<span class="missing-tag">${s}</span>`).join('')}</div>`
+        : '';
+}
+
+function scoreColor(score) {
+    if (score >= 0.8) return 'green';
+    if (score >= 0.6) return 'yellow';
+    return 'red';
+}
+
+async function loadResumeHistory() {
+    const { resumes } = await api('GET', '/api/resume/history');
+    if (resumes.length === 0) {
+        document.getElementById('resume-history').innerHTML = '<div class="empty-state">No resumes analyzed yet.</div>';
+        return;
+    }
+    document.getElementById('resume-history').innerHTML = resumes.map(r => `
+        <div class="app-card">
+            <div class="app-info">
+                <strong>${r.name || 'Untitled'}</strong> — ${r.filename}
+                <div style="font-size:0.85rem;color:var(--text-dim)">
+                    ${r.target_role ? 'Target: ' + r.target_role + ' · ' : ''}${r.created_at?.slice(0,10) || '-'}
+                </div>
+            </div>
+        </div>
+    `).join('');
 }
 
 // --- Rendering ---
@@ -162,6 +254,7 @@ function loadPage(page) {
     else if (page === 'jobs') loadJobs();
     else if (page === 'applications') loadApplications();
     else if (page === 'profile') loadProfile();
+    else if (page === 'resume') loadResumeHistory();
 }
 
 loadDashboard();

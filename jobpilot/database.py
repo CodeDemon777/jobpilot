@@ -5,7 +5,7 @@ import sqlite3
 from pathlib import Path
 
 from jobpilot.config import DB_PATH
-from jobpilot.models import JobListing, MatchResult, Application, Company
+from jobpilot.models import JobListing, MatchResult, Application, Company, Resume
 
 
 def get_connection(db_path: Path = DB_PATH) -> sqlite3.Connection:
@@ -84,6 +84,30 @@ def _create_tables(conn: sqlite3.Connection) -> None:
             career_page TEXT DEFAULT '',
             job_count INTEGER DEFAULT 0,
             notes TEXT DEFAULT ''
+        );
+
+        CREATE TABLE IF NOT EXISTS resumes (
+            id TEXT PRIMARY KEY,
+            name TEXT DEFAULT '',
+            filename TEXT DEFAULT '',
+            raw_text TEXT DEFAULT '',
+            target_role TEXT DEFAULT '',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE TABLE IF NOT EXISTS resume_analyses (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            resume_id TEXT REFERENCES resumes(id),
+            ats_score REAL DEFAULT 0,
+            resume_quality_score REAL DEFAULT 0,
+            technical_strength_score REAL DEFAULT 0,
+            hiring_readiness_score REAL DEFAULT 0,
+            skills TEXT DEFAULT '[]',
+            strengths TEXT DEFAULT '[]',
+            weaknesses TEXT DEFAULT '[]',
+            missing_skills TEXT DEFAULT '[]',
+            suggestions TEXT DEFAULT '[]',
+            analyzed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
     """)
     conn.commit()
@@ -231,7 +255,7 @@ def get_match_result(job_id: str, db_path: Path = DB_PATH) -> MatchResult | None
             experience_score=row["experience_score"],
             relevance_score=row["relevance_score"],
             education_score=row["education_score"],
-            role_score=row["location_score"],
+            role_score=row["role_score"],
             location_score=row["location_score"],
             strengths=json.loads(row["strengths"] or "[]"),
             weaknesses=json.loads(row["weaknesses"] or "[]"),
@@ -393,5 +417,128 @@ def get_stats(db_path: Path = DB_PATH) -> dict:
             "average_match_score": round(avg_score, 3),
             "top_sources": [{"source": r["source"], "count": r["cnt"]} for r in top_sources],
         }
+    finally:
+        conn.close()
+
+
+# --- Resumes ---
+
+def upsert_resume(resume: Resume, db_path: Path = DB_PATH) -> bool:
+    """Insert or update a resume. Returns True if new."""
+    conn = get_connection(db_path)
+    try:
+        existing = conn.execute("SELECT id FROM resumes WHERE id = ?", (resume.id,)).fetchone()
+        conn.execute("""
+            INSERT OR REPLACE INTO resumes
+            (id, name, filename, raw_text, target_role, created_at)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, (resume.id, resume.name, resume.filename, resume.raw_text,
+              resume.target_role, resume.created_at))
+        conn.commit()
+        return existing is None
+    finally:
+        conn.close()
+
+
+def get_resume(resume_id: str, db_path: Path = DB_PATH) -> Resume | None:
+    """Get a resume by ID."""
+    conn = get_connection(db_path)
+    try:
+        row = conn.execute("SELECT * FROM resumes WHERE id = ?", (resume_id,)).fetchone()
+        if not row:
+            return None
+        return Resume(
+            id=row["id"], name=row["name"], filename=row["filename"],
+            raw_text=row["raw_text"], target_role=row["target_role"],
+            created_at=row["created_at"],
+        )
+    finally:
+        conn.close()
+
+
+def get_all_resumes(db_path: Path = DB_PATH) -> list[Resume]:
+    """Get all resumes (without raw_text for efficiency)."""
+    conn = get_connection(db_path)
+    try:
+        rows = conn.execute(
+            "SELECT id, name, filename, target_role, created_at FROM resumes ORDER BY created_at DESC"
+        ).fetchall()
+        return [
+            Resume(id=r["id"], name=r["name"], filename=r["filename"],
+                   target_role=r["target_role"], created_at=r["created_at"])
+            for r in rows
+        ]
+    finally:
+        conn.close()
+
+
+def delete_resume(resume_id: str, db_path: Path = DB_PATH) -> bool:
+    """Delete a resume. Returns True if found."""
+    conn = get_connection(db_path)
+    try:
+        cur = conn.execute("DELETE FROM resumes WHERE id = ?", (resume_id,))
+        conn.execute("DELETE FROM resume_analyses WHERE resume_id = ?", (resume_id,))
+        conn.commit()
+        return cur.rowcount > 0
+    finally:
+        conn.close()
+
+
+def save_resume_analysis(
+    resume_id: str,
+    ats_score: float,
+    resume_quality_score: float,
+    technical_strength_score: float,
+    hiring_readiness_score: float,
+    skills: list[str],
+    strengths: list[str],
+    weaknesses: list[str],
+    missing_skills: list[str],
+    suggestions: list[str],
+    db_path: Path = DB_PATH,
+) -> None:
+    """Save a resume analysis result."""
+    conn = get_connection(db_path)
+    try:
+        conn.execute("""
+            INSERT INTO resume_analyses
+            (resume_id, ats_score, resume_quality_score, technical_strength_score,
+             hiring_readiness_score, skills, strengths, weaknesses, missing_skills, suggestions)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            resume_id, ats_score, resume_quality_score, technical_strength_score,
+            hiring_readiness_score, json.dumps(skills), json.dumps(strengths),
+            json.dumps(weaknesses), json.dumps(missing_skills), json.dumps(suggestions),
+        ))
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def get_resume_analyses(resume_id: str, db_path: Path = DB_PATH) -> list[dict]:
+    """Get all analyses for a resume."""
+    conn = get_connection(db_path)
+    try:
+        rows = conn.execute(
+            "SELECT * FROM resume_analyses WHERE resume_id = ? ORDER BY analyzed_at DESC",
+            (resume_id,),
+        ).fetchall()
+        return [
+            {
+                "id": r["id"],
+                "resume_id": r["resume_id"],
+                "ats_score": r["ats_score"],
+                "resume_quality_score": r["resume_quality_score"],
+                "technical_strength_score": r["technical_strength_score"],
+                "hiring_readiness_score": r["hiring_readiness_score"],
+                "skills": json.loads(r["skills"] or "[]"),
+                "strengths": json.loads(r["strengths"] or "[]"),
+                "weaknesses": json.loads(r["weaknesses"] or "[]"),
+                "missing_skills": json.loads(r["missing_skills"] or "[]"),
+                "suggestions": json.loads(r["suggestions"] or "[]"),
+                "analyzed_at": r["analyzed_at"],
+            }
+            for r in rows
+        ]
     finally:
         conn.close()
