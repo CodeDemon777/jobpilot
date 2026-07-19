@@ -259,6 +259,80 @@ def _create_tables(conn: sqlite3.Connection) -> None:
             new_jobs_found INTEGER DEFAULT 0,
             duration_seconds REAL DEFAULT 0
         );
+
+        CREATE TABLE IF NOT EXISTS career_roadmaps (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER,
+            goal_role TEXT DEFAULT '',
+            goal_company TEXT DEFAULT '',
+            current_skills TEXT DEFAULT '[]',
+            missing_skills TEXT DEFAULT '[]',
+            roadmap_data TEXT DEFAULT '[]',
+            estimated_duration_weeks INTEGER DEFAULT 0,
+            status TEXT DEFAULT 'active',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE TABLE IF NOT EXISTS resume_versions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER,
+            name TEXT DEFAULT '',
+            version_number INTEGER DEFAULT 1,
+            original_resume_id TEXT,
+            file_path TEXT DEFAULT '',
+            raw_text TEXT DEFAULT '',
+            ats_score REAL DEFAULT 0,
+            match_rate REAL DEFAULT 0,
+            skills TEXT DEFAULT '[]',
+            notes TEXT DEFAULT '',
+            is_active BOOLEAN DEFAULT 1,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (original_resume_id) REFERENCES resumes(id)
+        );
+
+        CREATE TABLE IF NOT EXISTS company_interviews (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            company TEXT NOT NULL,
+            role TEXT DEFAULT '',
+            difficulty INTEGER DEFAULT 0,
+            rounds TEXT DEFAULT '[]',
+            questions TEXT DEFAULT '[]',
+            experience_text TEXT DEFAULT '',
+            tips TEXT DEFAULT '',
+            salary_range TEXT DEFAULT '',
+            user_id INTEGER,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE TABLE IF NOT EXISTS salary_estimates (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            role TEXT DEFAULT '',
+            company TEXT DEFAULT '',
+            location TEXT DEFAULT '',
+            experience_level TEXT DEFAULT '',
+            skills TEXT DEFAULT '[]',
+            estimated_min INTEGER DEFAULT 0,
+            estimated_max INTEGER DEFAULT 0,
+            currency TEXT DEFAULT 'USD',
+            confidence_score REAL DEFAULT 0,
+            data_source TEXT DEFAULT '',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE TABLE IF NOT EXISTS career_coach_conversations (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER,
+            question TEXT DEFAULT '',
+            answer TEXT DEFAULT '',
+            context TEXT DEFAULT '{}',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_roadmaps_user ON career_roadmaps(user_id);
+        CREATE INDEX IF NOT EXISTS idx_resume_versions_user ON resume_versions(user_id);
+        CREATE INDEX IF NOT EXISTS idx_company_interviews_company ON company_interviews(company);
+        CREATE INDEX IF NOT EXISTS idx_salary_estimates_role ON salary_estimates(role);
     """)
 
     # User management tables
@@ -1742,5 +1816,209 @@ def get_user_stats(db_path: Path = DB_PATH) -> dict:
             "active_users": active_users,
             "recent_users": recent_users,
         }
+    finally:
+        conn.close()
+
+
+# --- Career Roadmaps ---
+
+def save_roadmap(user_id: int, goal_role: str, goal_company: str,
+                 current_skills: list, missing_skills: list,
+                 roadmap_data: list, estimated_weeks: int, db_path: Path = DB_PATH) -> int:
+    """Save a career roadmap."""
+    conn = get_connection(db_path)
+    try:
+        cursor = conn.execute("""
+            INSERT INTO career_roadmaps
+            (user_id, goal_role, goal_company, current_skills, missing_skills, roadmap_data, estimated_duration_weeks)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (user_id, goal_role, goal_company, json.dumps(current_skills),
+              json.dumps(missing_skills), json.dumps(roadmap_data), estimated_weeks))
+        conn.commit()
+        return cursor.lastrowid
+    finally:
+        conn.close()
+
+
+def get_roadmaps(user_id: int, db_path: Path = DB_PATH) -> list[dict]:
+    """Get all roadmaps for a user."""
+    conn = get_connection(db_path)
+    try:
+        rows = conn.execute(
+            "SELECT * FROM career_roadmaps WHERE user_id = ? ORDER BY created_at DESC",
+            (user_id,)
+        ).fetchall()
+        return [dict(r) for r in rows]
+    finally:
+        conn.close()
+
+
+def update_roadmap_status(roadmap_id: int, status: str, db_path: Path = DB_PATH) -> bool:
+    """Update roadmap status."""
+    conn = get_connection(db_path)
+    try:
+        cur = conn.execute(
+            "UPDATE career_roadmaps SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+            (status, roadmap_id)
+        )
+        conn.commit()
+        return cur.rowcount > 0
+    finally:
+        conn.close()
+
+
+# --- Resume Versions ---
+
+def save_resume_version(user_id: int, name: str, version_number: int,
+                        original_resume_id: str, raw_text: str,
+                        ats_score: float, match_rate: float,
+                        skills: list, notes: str = "", db_path: Path = DB_PATH) -> int:
+    """Save a resume version."""
+    conn = get_connection(db_path)
+    try:
+        cursor = conn.execute("""
+            INSERT INTO resume_versions
+            (user_id, name, version_number, original_resume_id, raw_text,
+             ats_score, match_rate, skills, notes)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (user_id, name, version_number, original_resume_id, raw_text,
+              ats_score, match_rate, json.dumps(skills), notes))
+        conn.commit()
+        return cursor.lastrowid
+    finally:
+        conn.close()
+
+
+def get_resume_versions(user_id: int, db_path: Path = DB_PATH) -> list[dict]:
+    """Get all resume versions for a user."""
+    conn = get_connection(db_path)
+    try:
+        rows = conn.execute(
+            "SELECT * FROM resume_versions WHERE user_id = ? ORDER BY version_number DESC",
+            (user_id,)
+        ).fetchall()
+        return [dict(r) for r in rows]
+    finally:
+        conn.close()
+
+
+def delete_resume_version(version_id: int, db_path: Path = DB_PATH) -> bool:
+    """Delete a resume version."""
+    conn = get_connection(db_path)
+    try:
+        cur = conn.execute("DELETE FROM resume_versions WHERE id = ?", (version_id,))
+        conn.commit()
+        return cur.rowcount > 0
+    finally:
+        conn.close()
+
+
+# --- Company Interviews ---
+
+def save_company_interview(company: str, role: str, difficulty: int,
+                           rounds: list, questions: list,
+                           experience_text: str, tips: str,
+                           salary_range: str, user_id: int, db_path: Path = DB_PATH) -> int:
+    """Save a company interview experience."""
+    conn = get_connection(db_path)
+    try:
+        cursor = conn.execute("""
+            INSERT INTO company_interviews
+            (company, role, difficulty, rounds, questions, experience_text, tips, salary_range, user_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (company, role, difficulty, json.dumps(rounds), json.dumps(questions),
+              experience_text, tips, salary_range, user_id))
+        conn.commit()
+        return cursor.lastrowid
+    finally:
+        conn.close()
+
+
+def get_company_interviews(company: str = None, db_path: Path = DB_PATH) -> list[dict]:
+    """Get company interview experiences."""
+    conn = get_connection(db_path)
+    try:
+        if company:
+            rows = conn.execute(
+                "SELECT * FROM company_interviews WHERE company = ? ORDER BY created_at DESC",
+                (company,)
+            ).fetchall()
+        else:
+            rows = conn.execute(
+                "SELECT * FROM company_interviews ORDER BY created_at DESC"
+            ).fetchall()
+        return [dict(r) for r in rows]
+    finally:
+        conn.close()
+
+
+# --- Salary Estimates ---
+
+def save_salary_estimate(role: str, company: str, location: str,
+                         experience_level: str, skills: list,
+                         estimated_min: int, estimated_max: int,
+                         currency: str, confidence: float,
+                         data_source: str, db_path: Path = DB_PATH) -> int:
+    """Save a salary estimate."""
+    conn = get_connection(db_path)
+    try:
+        cursor = conn.execute("""
+            INSERT INTO salary_estimates
+            (role, company, location, experience_level, skills,
+             estimated_min, estimated_max, currency, confidence_score, data_source)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (role, company, location, experience_level, json.dumps(skills),
+              estimated_min, estimated_max, currency, confidence, data_source))
+        conn.commit()
+        return cursor.lastrowid
+    finally:
+        conn.close()
+
+
+def get_salary_estimates(role: str = None, company: str = None, db_path: Path = DB_PATH) -> list[dict]:
+    """Get salary estimates."""
+    conn = get_connection(db_path)
+    try:
+        sql = "SELECT * FROM salary_estimates WHERE 1=1"
+        params = []
+        if role:
+            sql += " AND role LIKE ?"
+            params.append(f"%{role}%")
+        if company:
+            sql += " AND company LIKE ?"
+            params.append(f"%{company}%")
+        sql += " ORDER BY created_at DESC"
+        rows = conn.execute(sql, params).fetchall()
+        return [dict(r) for r in rows]
+    finally:
+        conn.close()
+
+
+# --- Career Coach ---
+
+def save_coach_conversation(user_id: int, question: str, answer: str,
+                            context: dict = None, db_path: Path = DB_PATH) -> int:
+    """Save a career coach conversation."""
+    conn = get_connection(db_path)
+    try:
+        cursor = conn.execute("""
+            INSERT INTO career_coach_conversations (user_id, question, answer, context)
+            VALUES (?, ?, ?, ?)
+        """, (user_id, question, answer, json.dumps(context or {})))
+        conn.commit()
+        return cursor.lastrowid
+    finally:
+        conn.close()
+
+
+def get_coach_conversations(user_id: int, limit: int = 50, db_path: Path = DB_PATH) -> list[dict]:
+    """Get career coach conversations."""
+    conn = get_connection(db_path)
+    try:
+        rows = conn.execute(
+            "SELECT * FROM career_coach_conversations WHERE user_id = ? ORDER BY created_at DESC LIMIT ?",
+            (user_id, limit)
+        ).fetchall()
+        return [dict(r) for r in rows]
     finally:
         conn.close()

@@ -18,6 +18,7 @@
             <a href="#" class="nav-link" data-page="applications">Applications</a>
             <a href="#" class="nav-link" data-page="resume">Resume</a>
             <a href="#" class="nav-link" data-page="tools">Tools</a>
+            <a href="#" class="nav-link" data-page="career">Career</a>
             <a href="#" class="nav-link" data-page="alerts">Alerts</a>
             <a href="#" class="nav-link" data-page="profile">Profile</a>
         </div>
@@ -556,6 +557,196 @@
             <div class="section">
                 <h2>Active Alerts</h2>
                 <div id="alerts-list"></div>
+            </div>
+        </section>
+
+        <!-- Career Page -->
+        <section id="page-career" class="page">
+            <h1>Career Tools</h1>
+            <div class="sub-tabs">
+                <button class="sub-tab active" data-tab="roadmap" onclick="switchCareerTab('roadmap')">Career Roadmap</button>
+                <button class="sub-tab" data-tab="coach" onclick="switchCareerTab('coach')">AI Coach</button>
+                <button class="sub-tab" data-tab="versions" onclick="switchCareerTab('versions')">Resume Versions</button>
+                <button class="sub-tab" data-tab="interviews" onclick="switchCareerTab('interviews')">Interview Prep</button>
+                <button class="sub-tab" data-tab="salary" onclick="switchCareerTab('salary')">Salary Estimator</button>
+            </div>
+
+            <!-- Career Roadmap Tab -->
+            <div class="tab-content active" id="tab-roadmap">
+                <div class="section">
+                    <h2>Generate Career Roadmap</h2>
+                    <p style="color: var(--text-dim); margin-bottom: 1rem;">
+                        Tell us your career goal and we'll create a personalized learning roadmap.
+                    </p>
+                    <form id="roadmap-form">
+                        <div class="form-group">
+                            <label>Target Role</label>
+                            <input type="text" id="roadmap-role" class="input" placeholder="e.g. Backend Developer, ML Engineer" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Target Company (optional)</label>
+                            <input type="text" id="roadmap-company" class="input" placeholder="e.g. Google, Microsoft">
+                        </div>
+                        <div class="form-group full-width">
+                            <button type="submit" class="btn btn-primary">Generate Roadmap</button>
+                        </div>
+                    </form>
+                </div>
+                <div id="roadmap-results" class="section" style="display:none;">
+                    <h2>Your Career Roadmap</h2>
+                    <div id="roadmap-output"></div>
+                </div>
+            </div>
+
+            <!-- AI Coach Tab -->
+            <div class="tab-content" id="tab-coach" style="display:none;">
+                <div class="section">
+                    <h2>AI Career Coach</h2>
+                    <p style="color: var(--text-dim); margin-bottom: 1rem;">
+                        Ask any career-related question and get personalized advice.
+                    </p>
+                    <form id="coach-form">
+                        <div class="form-group full-width">
+                            <label>Your Question</label>
+                            <textarea id="coach-question" class="input" rows="4" placeholder="e.g. Why is my ATS score low? Which projects should I add? How can I improve my resume?"></textarea>
+                        </div>
+                        <div class="form-group full-width">
+                            <button type="submit" class="btn btn-primary">Ask Coach</button>
+                        </div>
+                    </form>
+                </div>
+                <div id="coach-results" class="section" style="display:none;">
+                    <h2>Coach Response</h2>
+                    <div id="coach-output"></div>
+                </div>
+                <div class="section">
+                    <h2>Recent Conversations</h2>
+                    <div id="coach-history"></div>
+                </div>
+            </div>
+
+            <!-- Resume Versions Tab -->
+            <div class="tab-content" id="tab-versions" style="display:none;">
+                <div class="section">
+                    <h2>Create Resume Version</h2>
+                    <form id="version-form">
+                        <div class="form-group">
+                            <label>Version Name</label>
+                            <input type="text" id="version-name" class="input" placeholder="e.g. Backend Resume, AI Resume" required>
+                        </div>
+                        <div class="form-group full-width">
+                            <label>Resume Content</label>
+                            <textarea id="version-text" class="input" rows="8" placeholder="Paste your resume content..." required></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>Notes (optional)</label>
+                            <input type="text" id="version-notes" class="input" placeholder="e.g. Optimized for backend roles">
+                        </div>
+                        <div class="form-group full-width">
+                            <button type="submit" class="btn btn-primary">Create Version</button>
+                        </div>
+                    </form>
+                </div>
+                <div class="section">
+                    <h2>Resume Versions</h2>
+                    <div id="versions-list"></div>
+                </div>
+            </div>
+
+            <!-- Interview Prep Tab -->
+            <div class="tab-content" id="tab-interviews" style="display:none;">
+                <div class="section">
+                    <h2>Company Interview Information</h2>
+                    <p style="color: var(--text-dim); margin-bottom: 1rem;">
+                        Search for interview experiences at specific companies.
+                    </p>
+                    <form id="interview-search-form">
+                        <div class="form-group">
+                            <label>Company Name</label>
+                            <input type="text" id="interview-company" class="input" placeholder="e.g. Google, Microsoft, Amazon" required>
+                        </div>
+                        <div class="form-group full-width">
+                            <button type="submit" class="btn btn-primary">Search</button>
+                        </div>
+                    </form>
+                </div>
+                <div id="interview-results" class="section" style="display:none;">
+                    <h2>Interview Information</h2>
+                    <div id="interview-output"></div>
+                </div>
+                <div class="section">
+                    <h2>Submit Your Experience</h2>
+                    <form id="interview-submit-form">
+                        <div class="form-group">
+                            <label>Company</label>
+                            <input type="text" id="submit-company" class="input" placeholder="Company name">
+                        </div>
+                        <div class="form-group">
+                            <label>Role</label>
+                            <input type="text" id="submit-role" class="input" placeholder="e.g. Software Engineer">
+                        </div>
+                        <div class="form-group">
+                            <label>Difficulty (1-5)</label>
+                            <input type="number" id="submit-difficulty" class="input" min="1" max="5" value="3">
+                        </div>
+                        <div class="form-group full-width">
+                            <label>Your Experience</label>
+                            <textarea id="submit-experience" class="input" rows="4" placeholder="Describe your interview experience..."></textarea>
+                        </div>
+                        <div class="form-group full-width">
+                            <label>Tips for Others</label>
+                            <textarea id="submit-tips" class="input" rows="3" placeholder="Any tips for future candidates..."></textarea>
+                        </div>
+                        <div class="form-group full-width">
+                            <button type="submit" class="btn btn-primary">Submit Experience</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Salary Estimator Tab -->
+            <div class="tab-content" id="tab-salary" style="display:none;">
+                <div class="section">
+                    <h2>AI Salary Estimator</h2>
+                    <p style="color: var(--text-dim); margin-bottom: 1rem;">
+                        Get estimated salary ranges based on role, location, and skills.
+                    </p>
+                    <form id="salary-form">
+                        <div class="form-group">
+                            <label>Role</label>
+                            <input type="text" id="salary-role" class="input" placeholder="e.g. Software Engineer" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Company (optional)</label>
+                            <input type="text" id="salary-company" class="input" placeholder="e.g. Google">
+                        </div>
+                        <div class="form-group">
+                            <label>Location</label>
+                            <input type="text" id="salary-location" class="input" placeholder="e.g. San Francisco, Remote">
+                        </div>
+                        <div class="form-group">
+                            <label>Experience Level</label>
+                            <select id="salary-experience" class="input">
+                                <option value="">Select level</option>
+                                <option value="entry">Entry Level (0-2 years)</option>
+                                <option value="mid">Mid Level (2-5 years)</option>
+                                <option value="senior">Senior (5+ years)</option>
+                                <option value="lead">Lead/Principal (8+ years)</option>
+                            </select>
+                        </div>
+                        <div class="form-group full-width">
+                            <label>Skills (comma-separated)</label>
+                            <input type="text" id="salary-skills" class="input" placeholder="e.g. Python, React, AWS">
+                        </div>
+                        <div class="form-group full-width">
+                            <button type="submit" class="btn btn-primary">Estimate Salary</button>
+                        </div>
+                    </form>
+                </div>
+                <div id="salary-results" class="section" style="display:none;">
+                    <h2>Salary Estimate</h2>
+                    <div id="salary-output"></div>
+                </div>
             </div>
         </section>
     </main>

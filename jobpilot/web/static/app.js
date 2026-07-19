@@ -446,6 +446,287 @@ async function refreshJobs() {
     showToast('Jobs refreshed!');
 }
 
+// --- Career Page ---
+function switchCareerTab(tab) {
+    document.querySelectorAll('#page-career .sub-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('#page-career .tab-content').forEach(t => { t.style.display = 'none'; t.classList.remove('active'); });
+    document.querySelector(`#page-career .sub-tab[data-tab="${tab}"]`).classList.add('active');
+    const content = document.getElementById(`tab-${tab}`);
+    content.style.display = 'block';
+    content.classList.add('active');
+
+    // Load data for the tab
+    if (tab === 'coach') loadCoachHistory();
+    if (tab === 'versions') loadResumeVersions();
+}
+
+function loadCareerPage() {
+    // Load initial tab data
+    loadCoachHistory();
+    loadResumeVersions();
+}
+
+// Career Roadmap
+document.getElementById('roadmap-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const role = document.getElementById('roadmap-role').value.trim();
+    const company = document.getElementById('roadmap-company').value.trim();
+
+    showToast('Generating career roadmap...');
+    try {
+        const result = await api('POST', '/api/roadmap/generate', { goal_role: role, goal_company: company });
+        displayRoadmap(result);
+        showToast('Roadmap generated!');
+    } catch (err) {
+        showToast('Error generating roadmap.');
+    }
+});
+
+function displayRoadmap(result) {
+    const container = document.getElementById('roadmap-results');
+    container.style.display = 'block';
+
+    let html = `<div class="stats-grid">
+        <div class="stat-card"><div class="label">Goal</div><div class="value blue">${result.goal_role}</div></div>
+        <div class="stat-card"><div class="label">Duration</div><div class="value yellow">${result.estimated_duration_weeks} weeks</div></div>
+        <div class="stat-card"><div class="label">Missing Skills</div><div class="value red">${result.missing_skills.length}</div></div>
+        <div class="stat-card"><div class="label">Match Score</div><div class="value green">${(result.match_analysis.overall_score * 100).toFixed(0)}%</div></div>
+    </div>`;
+
+    if (result.missing_skills.length > 0) {
+        html += `<h3>Skills to Learn</h3><div class="job-skills">${result.missing_skills.map(s => `<span class="missing-tag">${s}</span>`).join('')}</div>`;
+    }
+
+    if (result.roadmap_data && result.roadmap_data.length > 0) {
+        html += `<h3>Roadmap</h3>`;
+        result.roadmap_data.forEach(phase => {
+            html += `<div class="improvement-card">
+                <div class="header">
+                    <span class="title">${phase.phase}</span>
+                    <span class="priority priority-medium">Week ${phase.week_start}-${phase.week_end}</span>
+                </div>
+                <div class="description">
+                    <strong>Skills:</strong> ${phase.skills.join(', ') || 'N/A'}<br>
+                    <strong>Tasks:</strong> ${phase.tasks.join(', ')}<br>
+                    <strong>Milestone:</strong> ${phase.milestone}
+                </div>
+            </div>`;
+        });
+    }
+
+    if (result.recommended_resources && result.recommended_resources.length > 0) {
+        html += `<h3>Recommended Resources</h3>`;
+        result.recommended_resources.forEach(r => {
+            html += `<div class="cert-item">
+                <span class="cert-name">${r.skill}</span>
+                <span class="cert-provider">${r.platform}</span>
+                <span class="cert-skill">${r.course}</span>
+            </div>`;
+        });
+    }
+
+    document.getElementById('roadmap-output').innerHTML = html;
+}
+
+// AI Career Coach
+document.getElementById('coach-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const question = document.getElementById('coach-question').value.trim();
+    if (!question) { showToast('Please enter a question.'); return; }
+
+    showToast('Asking career coach...');
+    try {
+        const result = await api('POST', '/api/coach/ask', { question });
+        displayCoachResponse(result);
+        loadCoachHistory();
+        showToast('Coach responded!');
+    } catch (err) {
+        showToast('Error getting response.');
+    }
+});
+
+function displayCoachResponse(result) {
+    const container = document.getElementById('coach-results');
+    container.style.display = 'block';
+    document.getElementById('coach-output').innerHTML = `
+        <div class="cover-letter-output">${result.answer}</div>
+        ${result.suggestions && result.suggestions.length > 0 ? `
+            <h3 style="margin-top: 1rem;">Suggested Actions</h3>
+            <div class="job-skills">${result.suggestions.map(s => `<span class="skill-tag">${s}</span>`).join('')}</div>
+        ` : ''}
+    `;
+}
+
+async function loadCoachHistory() {
+    const { conversations } = await api('GET', '/api/coach/history?limit=5');
+    const container = document.getElementById('coach-history');
+    if (!conversations || conversations.length === 0) {
+        container.innerHTML = '<div class="empty-state">No conversations yet.</div>';
+        return;
+    }
+    container.innerHTML = conversations.map(c => `
+        <div class="app-card">
+            <div class="app-info">
+                <strong>Q:</strong> ${c.question}
+                <div style="font-size:0.85rem;color:var(--text-dim)">${c.created_at?.slice(0,10) || '-'}</div>
+            </div>
+        </div>
+    `).join('');
+}
+
+// Resume Versions
+document.getElementById('version-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const name = document.getElementById('version-name').value.trim();
+    const text = document.getElementById('version-text').value.trim();
+    const notes = document.getElementById('version-notes').value.trim();
+
+    showToast('Creating resume version...');
+    try {
+        const result = await api('POST', '/api/resume/versions/create', { name, raw_text: text, notes });
+        showToast(`Version created! ATS Score: ${(result.ats_score * 100).toFixed(0)}%`);
+        loadResumeVersions();
+        e.target.reset();
+    } catch (err) {
+        showToast('Error creating version.');
+    }
+});
+
+async function loadResumeVersions() {
+    const { versions } = await api('GET', '/api/resume/versions');
+    const container = document.getElementById('versions-list');
+    if (!versions || versions.length === 0) {
+        container.innerHTML = '<div class="empty-state">No resume versions yet.</div>';
+        return;
+    }
+    container.innerHTML = versions.map(v => `
+        <div class="app-card">
+            <div class="app-info">
+                <strong>${v.name}</strong> (v${v.version_number})
+                <div style="font-size:0.85rem;color:var(--text-dim)">
+                    ATS: ${(v.ats_score * 100).toFixed(0)}% · Skills: ${JSON.parse(v.skills || '[]').length} · ${v.created_at?.slice(0,10) || '-'}
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+// Interview Prep
+document.getElementById('interview-search-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const company = document.getElementById('interview-company').value.trim();
+    showToast('Searching interview info...');
+    try {
+        const result = await api('GET', `/api/interviews/company/${encodeURIComponent(company)}`);
+        displayInterviewInfo(result);
+        showToast('Found interview info!');
+    } catch (err) {
+        showToast('Error fetching interview info.');
+    }
+});
+
+function displayInterviewInfo(result) {
+    const container = document.getElementById('interview-results');
+    container.style.display = 'block';
+
+    let html = `<h3>${result.company}</h3>`;
+
+    if (result.difficulty) {
+        html += `<p><strong>Difficulty:</strong> ${'⭐'.repeat(result.difficulty)} (${result.difficulty}/5)</p>`;
+    }
+
+    if (result.typical_rounds && result.typical_rounds.length > 0) {
+        html += `<h4>Typical Interview Process</h4>`;
+        result.typical_rounds.forEach(round => {
+            html += `<div class="improvement-card">
+                <div class="header">
+                    <span class="title">Round ${round.round}: ${round.type}</span>
+                    <span class="priority priority-medium">${round.duration}</span>
+                </div>
+                <div class="description">${round.topics.join(' · ')}</div>
+            </div>`;
+        });
+    }
+
+    if (result.common_questions && result.common_questions.length > 0) {
+        html += `<h4>Common Questions</h4><ul>${result.common_questions.map(q => `<li>${q}</li>`).join('')}</ul>`;
+    }
+
+    if (result.tips && result.tips.length > 0) {
+        html += `<h4>Tips</h4><ul>${result.tips.map(t => `<li>${t}</li>`).join('')}</ul>`;
+    }
+
+    if (result.salary_range) {
+        html += `<p><strong>Salary Range:</strong> ${result.salary_range}</p>`;
+    }
+
+    document.getElementById('interview-output').innerHTML = html;
+}
+
+document.getElementById('interview-submit-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const data = {
+        company: document.getElementById('submit-company').value.trim(),
+        role: document.getElementById('submit-role').value.trim(),
+        difficulty: parseInt(document.getElementById('submit-difficulty').value),
+        experience_text: document.getElementById('submit-experience').value.trim(),
+        tips: document.getElementById('submit-tips').value.trim(),
+        rounds: [],
+        questions: [],
+        salary_range: '',
+    };
+    showToast('Submitting experience...');
+    try {
+        await api('POST', '/api/interviews/submit', data);
+        showToast('Experience submitted!');
+        e.target.reset();
+    } catch (err) {
+        showToast('Error submitting experience.');
+    }
+});
+
+// Salary Estimator
+document.getElementById('salary-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const data = {
+        role: document.getElementById('salary-role').value.trim(),
+        company: document.getElementById('salary-company').value.trim(),
+        location: document.getElementById('salary-location').value.trim(),
+        experience_level: document.getElementById('salary-experience').value,
+        skills: document.getElementById('salary-skills').value.split(',').map(s => s.trim()).filter(Boolean),
+    };
+    showToast('Estimating salary...');
+    try {
+        const result = await api('POST', '/api/salary/estimate', data);
+        displaySalaryEstimate(result);
+        showToast('Estimate ready!');
+    } catch (err) {
+        showToast('Error estimating salary.');
+    }
+});
+
+function displaySalaryEstimate(result) {
+    const container = document.getElementById('salary-results');
+    container.style.display = 'block';
+
+    document.getElementById('salary-output').innerHTML = `
+        <div class="stats-grid">
+            <div class="stat-card"><div class="label">Minimum</div><div class="value green">$${result.estimated_min.toLocaleString()}</div></div>
+            <div class="stat-card"><div class="label">Maximum</div><div class="value blue">$${result.estimated_max.toLocaleString()}</div></div>
+            <div class="stat-card"><div class="label">Average</div><div class="value yellow">$${((result.estimated_min + result.estimated_max) / 2).toLocaleString()}</div></div>
+            <div class="stat-card"><div class="label">Confidence</div><div class="value">${(result.confidence_score * 100).toFixed(0)}%</div></div>
+        </div>
+        ${result.factors && result.factors.length > 0 ? `
+            <h3>Factors Affecting Salary</h3>
+            <ul>${result.factors.map(f => `<li>${f}</li>`).join('')}</ul>
+        ` : ''}
+        ${result.tips && result.tips.length > 0 ? `
+            <h3>Tips to Increase Salary</h3>
+            <ul>${result.tips.map(t => `<li>${t}</li>`).join('')}</ul>
+        ` : ''}
+    `;
+}
+
 async function importJobFromUrl() {
     const url = document.getElementById('job-import-url').value.trim();
     if (!url) {
@@ -818,6 +1099,7 @@ function loadPage(page) {
     else if (page === 'profile') loadProfile();
     else if (page === 'resume') loadResumeHistory();
     else if (page === 'tools') loadCoverLetterHistory();
+    else if (page === 'career') loadCareerPage();
     else if (page === 'alerts') loadAlerts();
 }
 

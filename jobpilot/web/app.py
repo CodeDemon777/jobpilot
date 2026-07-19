@@ -29,7 +29,55 @@ from jobpilot.auth import (
 from jobpilot.security import validate_email, validate_password
 from jobpilot.security import limiter, setup_cors, sanitize_input, get_client_ip
 
-app = FastAPI(title="JobPilot", version="0.2.0", description="AI-powered career assistant")
+app = FastAPI(title="JobPilot", version="0.3.0", description="AI-powered career assistant")
+
+
+# ============================================================================
+# HEALTH CHECK ENDPOINTS
+# ============================================================================
+
+@app.get("/health")
+async def health_check():
+    """Health check endpoint for monitoring."""
+    try:
+        conn = db.get_connection()
+        conn.execute("SELECT 1")
+        conn.close()
+        db_status = "healthy"
+    except Exception as e:
+        db_status = f"unhealthy: {str(e)}"
+
+    return {
+        "status": "healthy" if db_status == "healthy" else "degraded",
+        "version": "0.3.0",
+        "database": db_status,
+    }
+
+
+@app.get("/ready")
+async def readiness_check():
+    """Readiness check endpoint for load balancers."""
+    try:
+        conn = db.get_connection()
+        conn.execute("SELECT 1")
+        conn.close()
+        return {"status": "ready"}
+    except Exception:
+        return {"status": "not ready"}
+
+
+@app.get("/metrics")
+async def metrics():
+    """Basic metrics endpoint."""
+    try:
+        stats = db.get_stats()
+        return {
+            "total_jobs": stats.get("total_jobs", 0),
+            "total_companies": stats.get("total_companies", 0),
+            "total_applications": stats.get("total_applications", 0),
+        }
+    except Exception:
+        return {"error": "Failed to fetch metrics"}
 
 # Setup security middleware
 setup_cors(app)
@@ -1273,6 +1321,236 @@ async def delete_alert(alert_id: int):
     if not found:
         raise HTTPException(status_code=404, detail="Alert not found")
     return {"deleted": True}
+
+
+# ============================================================================
+# PHASE 1: PRODUCTION ESSENTIALS
+# ============================================================================
+
+# --- AI Career Roadmap ---
+
+class RoadmapRequest(BaseModel):
+    goal_role: str
+    goal_company: str = ""
+
+
+@app.post("/api/roadmap/generate")
+async def generate_roadmap(request: RoadmapRequest, current_user: TokenData = Depends(get_current_user)):
+    """Generate a personalized career roadmap."""
+    from jobpilot.career_roadmap import CareerRoadmapGenerator
+
+    generator = CareerRoadmapGenerator()
+    roadmap = generator.generate_roadmap(
+        goal_role=request.goal_role,
+        goal_company=request.goal_company,
+        user_id=current_user.user_id,
+    )
+
+    # Save to database
+    roadmap_id = db.save_roadmap(
+        user_id=current_user.user_id,
+        goal_role=request.goal_role,
+        goal_company=request.goal_company,
+        current_skills=roadmap["current_skills"],
+        missing_skills=roadmap["missing_skills"],
+        roadmap_data=roadmap["roadmap_data"],
+        estimated_weeks=roadmap["estimated_duration_weeks"],
+    )
+
+    roadmap["id"] = roadmap_id
+    return roadmap
+
+
+@app.get("/api/roadmap/history")
+async def get_roadmap_history(current_user: TokenData = Depends(get_current_user)):
+    """Get user's career roadmaps."""
+    roadmaps = db.get_roadmaps(current_user.user_id)
+    return {"roadmaps": roadmaps, "total": len(roadmaps)}
+
+
+@app.put("/api/roadmap/{roadmap_id}/status")
+async def update_roadmap_status(roadmap_id: int, status: str):
+    """Update roadmap status (active, completed, paused)."""
+    found = db.update_roadmap_status(roadmap_id, status)
+    if not found:
+        raise HTTPException(status_code=404, detail="Roadmap not found")
+    return {"updated": True}
+
+
+# --- AI Career Coach ---
+
+class CoachRequest(BaseModel):
+    question: str
+
+
+@app.post("/api/coach/ask")
+async def ask_coach(request: CoachRequest, current_user: TokenData = Depends(get_current_user)):
+    """Ask the AI career coach a question."""
+    from jobpilot.career_coach import CareerCoach
+
+    coach = CareerCoach()
+    answer = coach.ask(request.question, user_id=current_user.user_id)
+
+    # Save conversation
+    db.save_coach_conversation(
+        user_id=current_user.user_id,
+        question=request.question,
+        answer=answer["answer"],
+        context=answer.get("context", {}),
+    )
+
+    return answer
+
+
+@app.get("/api/coach/history")
+async def get_coach_history(limit: int = 20, current_user: TokenData = Depends(get_current_user)):
+    """Get career coach conversation history."""
+    conversations = db.get_coach_conversations(current_user.user_id, limit)
+    return {"conversations": conversations, "total": len(conversations)}
+
+
+# --- Resume Version Manager ---
+
+class ResumeVersionRequest(BaseModel):
+    name: str
+    raw_text: str
+    notes: str = ""
+    original_resume_id: str = ""
+
+
+@app.post("/api/resume/versions/create")
+async def create_resume_version(request: ResumeVersionRequest, current_user: TokenData = Depends(get_current_user)):
+    """Create a new resume version."""
+    from jobpilot.resume_version_manager import ResumeVersionManager
+
+    manager = ResumeVersionManager()
+    result = manager.create_version(
+        user_id=current_user.user_id,
+        name=request.name,
+        raw_text=request.raw_text,
+        notes=request.notes,
+        original_resume_id=request.original_resume_id,
+    )
+    return result
+
+
+@app.get("/api/resume/versions")
+async def get_resume_versions(current_user: TokenData = Depends(get_current_user)):
+    """Get all resume versions."""
+    from jobpilot.resume_version_manager import ResumeVersionManager
+
+    manager = ResumeVersionManager()
+    versions = manager.get_versions(current_user.user_id)
+    return {"versions": versions, "total": len(versions)}
+
+
+@app.get("/api/resume/versions/compare")
+async def compare_resume_versions(version_id_1: int, version_id_2: int):
+    """Compare two resume versions."""
+    from jobpilot.resume_version_manager import ResumeVersionManager
+
+    manager = ResumeVersionManager()
+    comparison = manager.compare_versions(version_id_1, version_id_2)
+    return comparison
+
+
+@app.delete("/api/resume/versions/{version_id}")
+async def delete_resume_version(version_id: int):
+    """Delete a resume version."""
+    from jobpilot.resume_version_manager import ResumeVersionManager
+
+    manager = ResumeVersionManager()
+    found = manager.delete_version(version_id)
+    if not found:
+        raise HTTPException(status_code=404, detail="Version not found")
+    return {"deleted": True}
+
+
+# --- Company Interview Experience ---
+
+class InterviewExperienceRequest(BaseModel):
+    company: str
+    role: str
+    difficulty: int
+    rounds: list
+    questions: list
+    experience_text: str
+    tips: str
+    salary_range: str
+
+
+@app.get("/api/interviews/company/{company}")
+async def get_company_interview(company: str):
+    """Get interview information for a company."""
+    from jobpilot.company_interviews import CompanyInterviewManager
+
+    manager = CompanyInterviewManager()
+    info = manager.get_interview_info(company)
+    return info
+
+
+@app.post("/api/interviews/submit")
+async def submit_interview_experience(request: InterviewExperienceRequest,
+                                      current_user: TokenData = Depends(get_current_user)):
+    """Submit a new interview experience."""
+    from jobpilot.company_interviews import CompanyInterviewManager
+
+    manager = CompanyInterviewManager()
+    exp_id = manager.submit_experience(
+        company=request.company,
+        role=request.role,
+        difficulty=request.difficulty,
+        rounds=request.rounds,
+        questions=request.questions,
+        experience_text=request.experience_text,
+        tips=request.tips,
+        salary_range=request.salary_range,
+        user_id=current_user.user_id,
+    )
+    return {"id": exp_id, "submitted": True}
+
+
+@app.get("/api/interviews/companies")
+async def list_companies_with_interviews():
+    """Get list of companies with interview data."""
+    from jobpilot.company_interviews import CompanyInterviewManager
+
+    manager = CompanyInterviewManager()
+    companies = manager.get_all_companies()
+    return {"companies": companies, "total": len(companies)}
+
+
+# --- AI Salary Estimator ---
+
+class SalaryEstimateRequest(BaseModel):
+    role: str
+    company: str = ""
+    location: str = ""
+    experience_level: str = ""
+    skills: list = []
+
+
+@app.post("/api/salary/estimate")
+async def estimate_salary(request: SalaryEstimateRequest):
+    """Estimate salary for a given role and profile."""
+    from jobpilot.salary_estimator import SalaryEstimator
+
+    estimator = SalaryEstimator()
+    estimate = estimator.estimate(
+        role=request.role,
+        company=request.company,
+        location=request.location,
+        experience_level=request.experience_level,
+        skills=request.skills,
+    )
+    return estimate
+
+
+@app.get("/api/salary/estimates")
+async def get_salary_estimates(role: str = None, company: str = None):
+    """Get salary estimates."""
+    estimates = db.get_salary_estimates(role, company)
+    return {"estimates": estimates, "total": len(estimates)}
 
 
 @app.get("/api/alerts/frequencies")
