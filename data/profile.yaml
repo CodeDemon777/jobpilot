@@ -1,5 +1,5 @@
-name: Tivya
-email: tivya@example.com
+name: Updated
+email: fullflow@example.com
 phone: ''
 location: remote
 country: global
@@ -8,13 +8,7 @@ github: ''
 portfolio: ''
 skills:
 - python
-- javascript
 - react
-- fastapi
-- docker
-- aws
-- postgresql
-- git
 programming_languages:
 - python
 - javascript
@@ -29,7 +23,7 @@ cloud_platforms:
 - aws
 - docker
 - kubernetes
-experience_years: 4
+experience_years: 5
 education:
 - degree: B.S. Computer Science
   school: University
@@ -43,3 +37,5 @@ remote_preference: remote
 expected_salary: ''
 visa_sponsorship: false
 work_authorization: ''
+is_verified: true
+verified_at: '2026-07-18T16:07:27.546674'

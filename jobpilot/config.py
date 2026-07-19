@@ -32,3 +32,8 @@ RATE_LIMIT_DELAY = 1.0  # seconds between requests to same source
 
 # Web dashboard
 DEFAULT_PORT = 8000
+
+# File upload settings
+UPLOAD_DIR = DATA_DIR / "uploads"
+MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
+ALLOWED_UPLOAD_TYPES = {".txt", ".pdf", ".md", ".rtf"}

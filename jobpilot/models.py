@@ -36,6 +36,8 @@ class UserProfile:
     expected_salary: str = ""
     visa_sponsorship: bool = False
     work_authorization: str = ""
+    is_verified: bool = False
+    verified_at: str = ""
 
     @property
     def all_skills(self) -> list[str]:
@@ -75,6 +77,8 @@ class JobListing:
     tech_stack: list[str] = field(default_factory=list)
     visa_required: bool = False
     discovered_at: str = field(default_factory=lambda: datetime.now().isoformat())
+    job_hash: str = ""
+    is_active: bool = True
 
     @property
     def id(self) -> str:
@@ -153,3 +157,147 @@ class Resume:
         # Don't include raw_text in default serialization (too large)
         d.pop("raw_text", None)
         return d
+
+
+@dataclass
+class CoverLetter:
+    """A generated cover letter."""
+    id: int = 0
+    resume_id: str = ""
+    job_id: str = ""
+    company_name: str = ""
+    role_title: str = ""
+    job_description: str = ""
+    letter_text: str = ""
+    tone: str = "professional"
+    word_count: int = 0
+    created_at: str = field(default_factory=lambda: datetime.now().isoformat())
+
+
+@dataclass
+class InterviewQuestion:
+    """A generated interview question."""
+    id: int = 0
+    job_id: str = ""
+    resume_id: str = ""
+    role_title: str = ""
+    category: str = ""
+    difficulty: str = ""
+    question: str = ""
+    sample_answer: str = ""
+    tips: str = ""
+    generated_at: str = field(default_factory=lambda: datetime.now().isoformat())
+
+
+@dataclass
+class SkillGapReport:
+    """A skill gap analysis report."""
+    id: int = 0
+    resume_id: str = ""
+    job_id: str = ""
+    matched_skills: list[str] = field(default_factory=list)
+    missing_skills: list[str] = field(default_factory=list)
+    extra_skills: list[str] = field(default_factory=list)
+    match_percentage: float = 0.0
+    learning_areas: list[str] = field(default_factory=list)
+    priority_ranking: list[str] = field(default_factory=list)
+    analyzed_at: str = field(default_factory=lambda: datetime.now().isoformat())
+
+
+@dataclass
+class LinkedInReport:
+    """A LinkedIn profile analysis report."""
+    id: int = 0
+    headline: str = ""
+    about: str = ""
+    skills_raw: str = ""
+    experience_raw: str = ""
+    suggestions: list[str] = field(default_factory=list)
+    missing_keywords: list[str] = field(default_factory=list)
+    visibility_score: float = 0.0
+    strength_score: float = 0.0
+    analyzed_at: str = field(default_factory=lambda: datetime.now().isoformat())
+
+
+@dataclass
+class TailoredResume:
+    """A tailored resume version."""
+    id: int = 0
+    original_resume_id: str = ""
+    job_id: str = ""
+    original_text: str = ""
+    tailored_text: str = ""
+    original_score: float = 0.0
+    tailored_score: float = 0.0
+    improvement_pct: float = 0.0
+    keywords_added: list[str] = field(default_factory=list)
+    created_at: str = field(default_factory=lambda: datetime.now().isoformat())
+
+
+@dataclass
+class AlertSubscription:
+    """A job alert subscription."""
+    id: int = 0
+    role: str = ""
+    location: str = ""
+    remote_only: bool = False
+    experience_level: str = ""
+    frequency: str = "daily"
+    is_active: bool = True
+    created_at: str = field(default_factory=lambda: datetime.now().isoformat())
+    last_notified_at: str = ""
+
+
+@dataclass
+class ImprovementReport:
+    """A resume improvement report."""
+    resume_id: str = ""
+    strengths: list[str] = field(default_factory=list)
+    weaknesses: list[str] = field(default_factory=list)
+    improvements: list[dict] = field(default_factory=list)
+    recommended_keywords: list[str] = field(default_factory=list)
+    score_before: dict = field(default_factory=dict)
+    score_after: dict = field(default_factory=dict)
+
+
+@dataclass
+class DashboardStats:
+    """Dashboard statistics."""
+    id: int = 0
+    period: str = "all"
+    total_jobs: int = 0
+    total_applications: int = 0
+    total_interviews: int = 0
+    total_offers: int = 0
+    total_rejections: int = 0
+    avg_match_score: float = 0.0
+    avg_ats_score: float = 0.0
+    application_timeline: list[dict] = field(default_factory=list)
+    skill_coverage: list[dict] = field(default_factory=list)
+    match_trends: list[dict] = field(default_factory=list)
+    computed_at: str = field(default_factory=lambda: datetime.now().isoformat())
+
+
+@dataclass
+class JobNotification:
+    """A job notification for smart alerts."""
+    id: int = 0
+    job_id: str = ""
+    notification_type: str = "new_match"
+    message: str = ""
+    match_score: float = 0.0
+    is_read: bool = False
+    created_at: str = field(default_factory=lambda: datetime.now().isoformat())
+
+
+@dataclass
+class JobScanHistory:
+    """Record of a job scan operation."""
+    id: int = 0
+    source: str = ""
+    query: str = ""
+    location: str = ""
+    scanned_at: str = field(default_factory=lambda: datetime.now().isoformat())
+    jobs_found: int = 0
+    new_jobs_found: int = 0
+    duration_seconds: float = 0.0

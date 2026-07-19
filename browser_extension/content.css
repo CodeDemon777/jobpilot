@@ -1,0 +1,27 @@
+/* JobPilot Save Button - Floating on page */
+#jobpilot-save-btn {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: #6c5ce7;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(108, 92, 231, 0.4);
+  z-index: 999999;
+  transition: all 0.2s ease;
+}
+
+#jobpilot-save-btn:hover {
+  background: #7c6df7;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(108, 92, 231, 0.5);
+}
+
+#jobpilot-save-btn:active {
+  transform: translateY(0);
+}

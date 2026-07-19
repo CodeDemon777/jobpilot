@@ -40,11 +40,17 @@ class BaseScraper(ABC):
         self._last_request_time = asyncio.get_event_loop().time()
 
     async def _fetch(self, url: str, headers: dict | None = None) -> httpx.Response:
-        """Fetch a URL with rate limiting and error handling."""
+        """Fetch a URL with rate limiting and proper headers."""
         await self._rate_limit()
-        async with httpx.AsyncClient(timeout=REQUEST_TIMEOUT) as client:
+        default_headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "Accept-Language": "en-US,en;q=0.5",
+        }
+        fetch_headers = {**default_headers, **(headers or {})}
+        async with httpx.AsyncClient(timeout=REQUEST_TIMEOUT, follow_redirects=True) as client:
             try:
-                response = await client.get(url, headers=headers or {})
+                response = await client.get(url, headers=fetch_headers)
                 response.raise_for_status()
                 return response
             except httpx.HTTPStatusError as e:

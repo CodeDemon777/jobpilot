@@ -4,7 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>JobPilot Dashboard</title>
-    <link rel="stylesheet" href="/static/style.css">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <link rel="stylesheet" href="/static/style.css?v=3.1">
 </head>
 <body>
     <nav class="navbar">
@@ -13,8 +16,18 @@
             <a href="#" class="nav-link active" data-page="dashboard">Dashboard</a>
             <a href="#" class="nav-link" data-page="jobs">Jobs</a>
             <a href="#" class="nav-link" data-page="applications">Applications</a>
-            <a href="#" class="nav-link" data-page="profile">Profile</a>
             <a href="#" class="nav-link" data-page="resume">Resume</a>
+            <a href="#" class="nav-link" data-page="tools">Tools</a>
+            <a href="#" class="nav-link" data-page="alerts">Alerts</a>
+            <a href="#" class="nav-link" data-page="profile">Profile</a>
+        </div>
+        <div class="nav-auth" id="nav-auth">
+            <button class="btn btn-secondary" onclick="showLoginModal()">Login</button>
+            <button class="btn btn-primary" onclick="showRegisterModal()">Register</button>
+        </div>
+        <div class="nav-user hidden" id="nav-user">
+            <span id="user-name">User</span>
+            <button class="btn btn-secondary" onclick="logout()">Logout</button>
         </div>
     </nav>
 
@@ -23,16 +36,57 @@
         <section id="page-dashboard" class="page active">
             <h1>Dashboard</h1>
             <div class="stats-grid" id="stats-grid"></div>
+
+            <!-- Notifications -->
+            <div class="section">
+                <h2>Notifications <span id="unread-badge" class="badge hidden"></span></h2>
+                <div id="notifications-list"></div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="section">
+                <h2>Quick Actions</h2>
+                <div class="actions">
+                    <button class="btn btn-primary" onclick="triggerSmartScan()">Smart Scan</button>
+                    <button class="btn btn-secondary" onclick="runMatch()">Run Matching</button>
+                    <button class="btn btn-secondary" onclick="refreshPage()">Refresh Data</button>
+                </div>
+            </div>
+
+            <!-- New Jobs Today -->
+            <div class="section">
+                <h2>New Jobs Today</h2>
+                <div id="new-jobs-today"></div>
+            </div>
+
+            <!-- Recent High Match -->
             <div class="section">
                 <h2>Top Matches</h2>
                 <div id="top-matches"></div>
             </div>
+
+            <!-- Trending Skills -->
             <div class="section">
-                <h2>Quick Actions</h2>
-                <div class="actions">
-                    <button class="btn btn-primary" onclick="triggerScan()">Scan Jobs</button>
-                    <button class="btn btn-secondary" onclick="runMatch()">Run Matching</button>
-                </div>
+                <h2>Trending Skills</h2>
+                <div id="trending-skills"></div>
+            </div>
+
+            <!-- Top Hiring Companies -->
+            <div class="section">
+                <h2>Top Hiring Companies</h2>
+                <div id="top-companies"></div>
+            </div>
+
+            <!-- Jobs by Source -->
+            <div class="section">
+                <h2>Jobs by Source</h2>
+                <div id="jobs-by-source"></div>
+            </div>
+
+            <!-- Recommendations -->
+            <div class="section">
+                <h2>Recommended For You</h2>
+                <div id="recommendations"></div>
             </div>
         </section>
 
@@ -45,9 +99,39 @@
                     <option value="">All Sources</option>
                     <option value="greenhouse">Greenhouse</option>
                     <option value="remoteok">RemoteOK</option>
+                    <option value="indeed">Indeed</option>
+                    <option value="linkedin">LinkedIn</option>
+                    <option value="wellfound">Wellfound</option>
+                    <option value="weworkremotely">We Work Remotely</option>
+                    <option value="yc_jobs">Y Combinator</option>
+                    <option value="lever">Lever</option>
+                    <option value="ashby">Ashby</option>
+                    <option value="naukri">Naukri</option>
+                    <option value="internshala">Internshala</option>
+                    <option value="cutshort">Cutshort</option>
+                    <option value="hirect">Hirect</option>
+                    <option value="foundit">Foundit</option>
+                    <option value="glassdoor">Glassdoor</option>
+                    <option value="workable">Workable</option>
+                    <option value="career_pages">Career Pages</option>
                 </select>
                 <button class="btn btn-primary" onclick="loadJobs()">Filter</button>
+                <button class="btn btn-secondary" onclick="refreshJobs()">Refresh</button>
             </div>
+
+            <!-- Import Job from URL -->
+            <div class="section">
+                <h2>Import Job from URL</h2>
+                <p style="color: var(--text-dim); margin-bottom: 1rem;">
+                    Paste a job URL from LinkedIn, Naukri, Indeed, Glassdoor, or any job board.
+                </p>
+                <div class="import-form">
+                    <input type="url" id="job-import-url" placeholder="https://www.linkedin.com/jobs/view/..." class="input" style="flex: 1;">
+                    <button class="btn btn-primary" onclick="importJobFromUrl()">Import Job</button>
+                </div>
+                <div id="import-result" style="margin-top: 1rem;"></div>
+            </div>
+
             <div id="jobs-list"></div>
         </section>
 
@@ -142,40 +226,502 @@
 
         <!-- Resume Analyzer -->
         <section id="page-resume" class="page">
-            <h1>Resume Analyzer</h1>
+            <h1>Resume Tools</h1>
+            <div class="sub-tabs">
+                <button class="sub-tab active" data-tab="upload" onclick="switchResumeTab('upload')">Upload Resume</button>
+                <button class="sub-tab" data-tab="analyze" onclick="switchResumeTab('analyze')">Analysis Results</button>
+                <button class="sub-tab" data-tab="improve" onclick="switchResumeTab('improve')">Improve</button>
+                <button class="sub-tab" data-tab="tailor" onclick="switchResumeTab('tailor')">Tailor</button>
+                <button class="sub-tab" data-tab="history" onclick="switchResumeTab('history')">History</button>
+            </div>
+
+            <!-- Upload Tab (Primary) -->
+            <div class="tab-content active" id="tab-upload">
+                <div class="section">
+                    <h2>Upload Your Resume</h2>
+                    <p style="color: var(--text-dim); margin-bottom: 1rem;">
+                        Upload your resume as PDF or TXT. The system will automatically extract text, analyze your resume, and provide improvement suggestions.
+                    </p>
+                    <form id="upload-form" enctype="multipart/form-data">
+                        <div class="form-group full-width">
+                            <label>Select Resume File</label>
+                            <div class="upload-area" id="upload-area">
+                                <input type="file" id="resume-file" class="input" accept=".pdf,.txt,.md,.rtf" style="display:none;">
+                                <p style="font-size: 1.5rem; margin-bottom: 0.5rem;">📄</p>
+                                <p>Click to select or drag and drop your resume</p>
+                                <p style="font-size: 0.8rem; color: var(--text-dim);">Supports PDF, TXT, MD, RTF (Max 5MB)</p>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Target Role (optional)</label>
+                            <input type="text" id="upload-target-role" class="input" placeholder="e.g. backend engineer, full stack developer">
+                        </div>
+                        <div class="form-group full-width">
+                            <button type="submit" class="btn btn-primary">Upload & Analyze Resume</button>
+                        </div>
+                    </form>
+                </div>
+                <div id="upload-results" class="section" style="display:none;">
+                    <h2>Analysis Results</h2>
+                    <div id="upload-scores"></div>
+                    <div id="upload-skills"></div>
+                    <div id="upload-strengths"></div>
+                    <div id="upload-weaknesses"></div>
+                    <div id="upload-suggestions"></div>
+                    <div id="upload-missing"></div>
+                </div>
+            </div>
+
+            <!-- Analyze Tab (History) -->
+            <div class="tab-content" id="tab-analyze" style="display:none;">
+                <div class="section">
+                    <h2>Uploaded Resumes</h2>
+                    <div id="upload-history"></div>
+                </div>
+            </div>
+
+            <!-- Improve Tab -->
+            <div class="tab-content" id="tab-improve" style="display:none;">
+                <div class="section">
+                    <h2>Get Improvement Suggestions</h2>
+                    <p style="color: var(--text-dim); margin-bottom: 1rem;">
+                        Select a previously uploaded resume to get improvement suggestions.
+                    </p>
+                    <form id="improve-form">
+                        <div class="form-group full-width">
+                            <label>Select Uploaded Resume</label>
+                            <select id="improve-resume-select" class="input">
+                                <option value="">-- Select a resume --</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Target Role</label>
+                            <input type="text" id="improve-target-role" class="input" placeholder="e.g. backend engineer">
+                        </div>
+                        <div class="form-group full-width">
+                            <button type="submit" class="btn btn-primary">Get Suggestions</button>
+                        </div>
+                    </form>
+                </div>
+                <div id="improve-results" class="section" style="display:none;">
+                    <h2>Improvement Report</h2>
+                    <div id="improve-output"></div>
+                </div>
+            </div>
+
+            <!-- Tailor Tab -->
+            <div class="tab-content" id="tab-tailor" style="display:none;">
+                <div class="section">
+                    <h2>Tailor Resume for Job</h2>
+                    <form id="tailor-form">
+                        <div class="form-group full-width">
+                            <label>Resume Text</label>
+                            <textarea id="tailor-resume-text" class="input" rows="8" placeholder="Paste your resume text..."></textarea>
+                        </div>
+                        <div class="form-group full-width">
+                            <label>Job Description</label>
+                            <textarea id="tailor-job-desc" class="input" rows="8" placeholder="Paste the job description..."></textarea>
+                        </div>
+                        <div class="form-group full-width">
+                            <button type="submit" class="btn btn-primary">Tailor Resume</button>
+                        </div>
+                    </form>
+                </div>
+                <div id="tailor-results" class="section" style="display:none;">
+                    <h2>Tailored Resume</h2>
+                    <div id="tailor-output"></div>
+                </div>
+                <div class="section">
+                    <h2>Tailored Versions</h2>
+                    <div id="tailor-history"></div>
+                </div>
+            </div>
+
+            <!-- History Tab -->
+            <div class="tab-content" id="tab-history" style="display:none;">
+                <div class="section">
+                    <h2>Analysis History</h2>
+                    <div id="resume-history"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tools Page -->
+        <section id="page-tools" class="page">
+            <h1>Career Tools</h1>
+            <div class="sub-tabs">
+                <button class="sub-tab active" data-tab="cover-letter" onclick="switchToolsTab('cover-letter')">Cover Letter</button>
+                <button class="sub-tab" data-tab="interview" onclick="switchToolsTab('interview')">Interview Prep</button>
+                <button class="sub-tab" data-tab="skill-gap" onclick="switchToolsTab('skill-gap')">Skill Gap</button>
+                <button class="sub-tab" data-tab="linkedin" onclick="switchToolsTab('linkedin')">LinkedIn</button>
+            </div>
+
+            <!-- Cover Letter Tab -->
+            <div class="tab-content active" id="tab-cover-letter">
+                <div class="section">
+                    <h2>Generate Cover Letter</h2>
+                    <form id="cover-letter-form">
+                        <div class="form-group full-width">
+                            <label>Resume Text</label>
+                            <textarea id="cl-resume-text" class="input" rows="6" placeholder="Paste your resume text..."></textarea>
+                        </div>
+                        <div class="form-group full-width">
+                            <label>Job Description</label>
+                            <textarea id="cl-job-desc" class="input" rows="6" placeholder="Paste the job description..."></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>Company Name</label>
+                            <input type="text" id="cl-company" class="input" placeholder="e.g. Google">
+                        </div>
+                        <div class="form-group">
+                            <label>Role Title</label>
+                            <input type="text" id="cl-role" class="input" placeholder="e.g. Software Engineer">
+                        </div>
+                        <div class="form-group">
+                            <label>Tone</label>
+                            <select id="cl-tone" class="input">
+                                <option value="professional">Professional</option>
+                                <option value="enthusiastic">Enthusiastic</option>
+                                <option value="formal">Formal</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Your Name</label>
+                            <input type="text" id="cl-name" class="input" placeholder="e.g. John Doe">
+                        </div>
+                        <div class="form-group full-width">
+                            <button type="submit" class="btn btn-primary">Generate Cover Letter</button>
+                        </div>
+                    </form>
+                </div>
+                <div id="cl-results" class="section" style="display:none;">
+                    <h2>Generated Cover Letter</h2>
+                    <div id="cl-output"></div>
+                </div>
+                <div class="section">
+                    <h2>Saved Cover Letters</h2>
+                    <div id="cl-history"></div>
+                </div>
+            </div>
+
+            <!-- Interview Prep Tab -->
+            <div class="tab-content" id="tab-interview" style="display:none;">
+                <div class="section">
+                    <h2>Generate Interview Questions</h2>
+                    <form id="interview-form">
+                        <div class="form-group full-width">
+                            <label>Resume Text (optional)</label>
+                            <textarea id="int-resume-text" class="input" rows="6" placeholder="Paste your resume for tailored questions..."></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>Role Title</label>
+                            <input type="text" id="int-role" class="input" placeholder="e.g. Software Engineer">
+                        </div>
+                        <div class="form-group">
+                            <label>Categories</label>
+                            <select id="int-category" class="input" multiple>
+                                <option value="technical" selected>Technical</option>
+                                <option value="behavioral" selected>Behavioral</option>
+                                <option value="hr">HR</option>
+                                <option value="system_design">System Design</option>
+                                <option value="coding">Coding</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Difficulty</label>
+                            <select id="int-difficulty" class="input">
+                                <option value="beginner">Beginner</option>
+                                <option value="intermediate" selected>Intermediate</option>
+                                <option value="advanced">Advanced</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Number of Questions</label>
+                            <input type="number" id="int-count" class="input" value="10" min="1" max="50">
+                        </div>
+                        <div class="form-group full-width">
+                            <button type="submit" class="btn btn-primary">Generate Questions</button>
+                        </div>
+                    </form>
+                </div>
+                <div id="int-results" class="section" style="display:none;">
+                    <h2>Interview Questions</h2>
+                    <div id="int-output"></div>
+                </div>
+            </div>
+
+            <!-- Skill Gap Tab -->
+            <div class="tab-content" id="tab-skill-gap" style="display:none;">
+                <div class="section">
+                    <h2>Analyze Skill Gap</h2>
+                    <form id="skill-gap-form">
+                        <div class="form-group full-width">
+                            <label>Resume Text</label>
+                            <textarea id="sg-resume-text" class="input" rows="6" placeholder="Paste your resume text..."></textarea>
+                        </div>
+                        <div class="form-group full-width">
+                            <label>Job Description</label>
+                            <textarea id="sg-job-desc" class="input" rows="6" placeholder="Paste the job description..."></textarea>
+                        </div>
+                        <div class="form-group full-width">
+                            <button type="submit" class="btn btn-primary">Analyze Gap</button>
+                        </div>
+                    </form>
+                </div>
+                <div id="sg-results" class="section" style="display:none;">
+                    <h2>Skill Gap Report</h2>
+                    <div id="sg-output"></div>
+                </div>
+            </div>
+
+            <!-- LinkedIn Tab -->
+            <div class="tab-content" id="tab-linkedin" style="display:none;">
+                <div class="section">
+                    <h2>Analyze LinkedIn Profile</h2>
+                    <form id="linkedin-form">
+                        <div class="form-group full-width">
+                            <label>Headline</label>
+                            <input type="text" id="li-headline" class="input" placeholder="e.g. Senior Software Engineer at Google">
+                        </div>
+                        <div class="form-group full-width">
+                            <label>About Section</label>
+                            <textarea id="li-about" class="input" rows="6" placeholder="Paste your LinkedIn about section..."></textarea>
+                        </div>
+                        <div class="form-group full-width">
+                            <label>Skills</label>
+                            <textarea id="li-skills" class="input" rows="4" placeholder="Paste your LinkedIn skills..."></textarea>
+                        </div>
+                        <div class="form-group full-width">
+                            <label>Experience</label>
+                            <textarea id="li-experience" class="input" rows="6" placeholder="Paste your LinkedIn experience..."></textarea>
+                        </div>
+                        <div class="form-group full-width">
+                            <button type="submit" class="btn btn-primary">Analyze Profile</button>
+                        </div>
+                    </form>
+                </div>
+                <div id="li-results" class="section" style="display:none;">
+                    <h2>LinkedIn Analysis</h2>
+                    <div id="li-output"></div>
+                </div>
+                <div class="section">
+                    <h2>Analysis History</h2>
+                    <div id="li-history"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Alerts Page -->
+        <section id="page-alerts" class="page">
+            <h1>Job Alerts</h1>
             <div class="section">
-                <h2>Paste Your Resume</h2>
-                <form id="resume-form">
-                    <div class="form-group full-width">
-                        <label>Resume Text</label>
-                        <textarea id="resume-text" class="input" rows="12" placeholder="Paste your resume text here..."></textarea>
+                <h2>Create Alert</h2>
+                <form id="alert-form">
+                    <div class="form-group">
+                        <label>Role</label>
+                        <input type="text" id="alert-role" class="input" placeholder="e.g. Python Developer">
                     </div>
                     <div class="form-group">
-                        <label>Target Role (optional)</label>
-                        <input type="text" id="resume-target-role" class="input" placeholder="e.g. backend engineer, full stack developer">
+                        <label>Location</label>
+                        <input type="text" id="alert-location" class="input" placeholder="e.g. Remote, New York">
+                    </div>
+                    <div class="form-group">
+                        <label>Experience Level</label>
+                        <select id="alert-experience" class="input">
+                            <option value="">Any</option>
+                            <option value="entry">Entry Level</option>
+                            <option value="mid">Mid Level</option>
+                            <option value="senior">Senior</option>
+                            <option value="lead">Lead</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Frequency</label>
+                        <select id="alert-frequency" class="input">
+                            <option value="daily">Daily</option>
+                            <option value="weekly">Weekly</option>
+                            <option value="instant">Instant</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="verify-checkbox">
+                            <input type="checkbox" id="alert-remote"> Remote Only
+                        </label>
                     </div>
                     <div class="form-group full-width">
-                        <button type="submit" class="btn btn-primary">Analyze Resume</button>
+                        <button type="submit" class="btn btn-primary">Create Alert</button>
                     </div>
                 </form>
             </div>
-            <div id="resume-results" class="section" style="display:none;">
-                <h2>Analysis Results</h2>
-                <div id="resume-scores"></div>
-                <div id="resume-skills"></div>
-                <div id="resume-strengths"></div>
-                <div id="resume-weaknesses"></div>
-                <div id="resume-suggestions"></div>
-                <div id="resume-missing"></div>
-            </div>
             <div class="section">
-                <h2>Analysis History</h2>
-                <div id="resume-history"></div>
+                <h2>Active Alerts</h2>
+                <div id="alerts-list"></div>
             </div>
         </section>
     </main>
 
+    <!-- Verification Modal -->
+    <div id="verification-modal" class="modal-overlay" style="display:none;">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>Verify Your Information</h2>
+                <button class="modal-close" onclick="closeVerificationModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p class="modal-message">We have automatically filled some of your information. Please review the details below before continuing. Do you confirm that the information is correct?</p>
+
+                <!-- Personal Information -->
+                <div class="verify-section">
+                    <h3>Personal Information</h3>
+                    <div class="verify-grid">
+                        <div class="verify-field">
+                            <span class="verify-label">Name</span>
+                            <span class="verify-value" id="verify-name"></span>
+                        </div>
+                        <div class="verify-field">
+                            <span class="verify-label">Email</span>
+                            <span class="verify-value" id="verify-email"></span>
+                        </div>
+                        <div class="verify-field">
+                            <span class="verify-label">Phone</span>
+                            <span class="verify-value" id="verify-phone"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Professional Information -->
+                <div class="verify-section">
+                    <h3>Professional Information</h3>
+                    <div class="verify-grid">
+                        <div class="verify-field full-width">
+                            <span class="verify-label">Skills</span>
+                            <span class="verify-value" id="verify-skills"></span>
+                        </div>
+                        <div class="verify-field">
+                            <span class="verify-label">Experience</span>
+                            <span class="verify-value" id="verify-experience"></span>
+                        </div>
+                        <div class="verify-field">
+                            <span class="verify-label">Education</span>
+                            <span class="verify-value" id="verify-education"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Job Preferences -->
+                <div class="verify-section">
+                    <h3>Job Preferences</h3>
+                    <div class="verify-grid">
+                        <div class="verify-field">
+                            <span class="verify-label">Preferred Role</span>
+                            <span class="verify-value" id="verify-roles"></span>
+                        </div>
+                        <div class="verify-field">
+                            <span class="verify-label">Preferred Location</span>
+                            <span class="verify-value" id="verify-location"></span>
+                        </div>
+                        <div class="verify-field">
+                            <span class="verify-label">Remote Preference</span>
+                            <span class="verify-value" id="verify-remote"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Resume Summary (only shown when data comes from resume analysis) -->
+                <div class="verify-section" id="verify-resume-summary" style="display:none;">
+                    <h3>Resume Summary</h3>
+                    <div class="verify-grid">
+                        <div class="verify-field">
+                            <span class="verify-label">ATS Score</span>
+                            <span class="verify-value" id="verify-ats"></span>
+                        </div>
+                        <div class="verify-field">
+                            <span class="verify-label">Technical Strength</span>
+                            <span class="verify-value" id="verify-tech"></span>
+                        </div>
+                        <div class="verify-field">
+                            <span class="verify-label">Hiring Readiness</span>
+                            <span class="verify-value" id="verify-hiring"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Checkboxes -->
+                <div class="verify-checks">
+                    <label class="verify-checkbox">
+                        <input type="checkbox" id="verify-check-1"> I have reviewed all information.
+                    </label>
+                    <label class="verify-checkbox">
+                        <input type="checkbox" id="verify-check-2"> I confirm these details are correct.
+                    </label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="handleVerifyEdit()">Edit Information</button>
+                <button class="btn btn-secondary" onclick="closeVerificationModal()">Cancel</button>
+                <button class="btn btn-primary" id="verify-confirm-btn" disabled onclick="handleVerifyConfirm()">Confirm &amp; Submit</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Login Modal -->
+    <div id="login-modal" class="modal-overlay hidden">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>Login to JobPilot</h2>
+                <button class="modal-close" onclick="closeLoginModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="login-form">
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" id="login-email" class="input" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="password" id="login-password" class="input" required>
+                    </div>
+                    <div class="form-group full-width">
+                        <button type="submit" class="btn btn-primary">Login</button>
+                    </div>
+                    <p class="text-center">Don't have an account? <a href="#" onclick="showRegisterModal()">Register</a></p>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Register Modal -->
+    <div id="register-modal" class="modal-overlay hidden">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>Create Account</h2>
+                <button class="modal-close" onclick="closeRegisterModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="register-form">
+                    <div class="form-group">
+                        <label>Name</label>
+                        <input type="text" id="register-name" class="input">
+                    </div>
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" id="register-email" class="input" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="password" id="register-password" class="input" required>
+                        <small class="text-dim">Min 8 chars, 1 uppercase, 1 lowercase, 1 digit</small>
+                    </div>
+                    <div class="form-group full-width">
+                        <button type="submit" class="btn btn-primary">Create Account</button>
+                    </div>
+                    <p class="text-center">Already have an account? <a href="#" onclick="showLoginModal()">Login</a></p>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <div id="toast" class="toast hidden"></div>
-    <script src="/static/app.js"></script>
+    <script src="/static/app.js?v=3.0"></script>
 </body>
 </html>

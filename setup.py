@@ -16,6 +16,7 @@ setup(
         "rich>=13.0",
         "pydantic>=2.0",
         "aiosqlite>=0.20.0",
+        "pypdf>=4.0",
     ],
     entry_points={
         "console_scripts": [

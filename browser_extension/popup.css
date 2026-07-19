@@ -1,0 +1,201 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  background: #0f1117;
+  color: #e4e6f0;
+  width: 350px;
+  min-height: 400px;
+}
+
+.container {
+  padding: 16px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #2d3040;
+}
+
+.logo {
+  width: 32px;
+  height: 32px;
+}
+
+h1 {
+  font-size: 18px;
+  font-weight: 700;
+  color: #6c5ce7;
+}
+
+h2 {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: #e4e6f0;
+}
+
+.section {
+  margin-bottom: 16px;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.form-group {
+  margin-bottom: 12px;
+}
+
+.form-group label {
+  display: block;
+  font-size: 12px;
+  color: #8b8fa3;
+  margin-bottom: 4px;
+}
+
+input, textarea, select {
+  width: 100%;
+  padding: 8px 12px;
+  background: #252833;
+  border: 1px solid #2d3040;
+  border-radius: 6px;
+  color: #e4e6f0;
+  font-size: 13px;
+}
+
+input:focus, textarea:focus {
+  outline: none;
+  border-color: #6c5ce7;
+}
+
+textarea {
+  resize: vertical;
+  min-height: 60px;
+}
+
+.btn {
+  display: inline-block;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  text-decoration: none;
+}
+
+.btn-primary {
+  background: #6c5ce7;
+  color: white;
+  width: 100%;
+}
+
+.btn-primary:hover {
+  background: #7c6df7;
+}
+
+.btn-secondary {
+  background: #252833;
+  color: #e4e6f0;
+  border: 1px solid #2d3040;
+  width: 100%;
+}
+
+.btn-secondary:hover {
+  border-color: #6c5ce7;
+}
+
+.btn-link {
+  background: none;
+  color: #6c5ce7;
+  padding: 4px 8px;
+  font-size: 12px;
+}
+
+.btn-link:hover {
+  text-decoration: underline;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.actions .btn {
+  flex: 1;
+}
+
+.text-center {
+  text-align: center;
+  font-size: 12px;
+  color: #8b8fa3;
+  margin-top: 8px;
+}
+
+.text-center a {
+  color: #6c5ce7;
+  text-decoration: none;
+}
+
+.text-center a:hover {
+  text-decoration: underline;
+}
+
+.job-info {
+  background: #1a1d27;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 12px;
+}
+
+.footer {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid #2d3040;
+}
+
+.success {
+  background: rgba(0, 210, 160, 0.1);
+  border: 1px solid rgba(0, 210, 160, 0.3);
+  border-radius: 6px;
+  padding: 12px;
+  margin-top: 12px;
+  color: #00d2a0;
+  font-size: 13px;
+}
+
+.error {
+  background: rgba(255, 107, 107, 0.1);
+  border: 1px solid rgba(255, 107, 107, 0.3);
+  border-radius: 6px;
+  padding: 12px;
+  margin-top: 12px;
+  color: #ff6b6b;
+  font-size: 13px;
+}
+
+.spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid #ffffff;
+  border-radius: 50%;
+  border-top-color: transparent;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
