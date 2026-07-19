@@ -48,7 +48,9 @@ def analyze_linkedin_profile(
 
     # Calculate scores
     visibility_score = _calculate_visibility_score(headline, about, skills, experience)
-    strength_score = _calculate_strength_score(headline_score, about_score, skills_score, exp_score)
+    strength_score = _calculate_strength_score(
+        headline_score, about_score, skills_score, exp_score
+    )
 
     return {
         "suggestions": suggestions,
@@ -59,13 +61,19 @@ def analyze_linkedin_profile(
         "headline_analysis": {
             "length": len(headline),
             "score": headline_score,
-            "has_role": any(w in headline.lower() for w in ["engineer", "developer", "manager", "analyst", "designer"]),
+            "has_role": any(
+                w in headline.lower()
+                for w in ["engineer", "developer", "manager", "analyst", "designer"]
+            ),
             "has_company": "|" in headline or "at" in headline.lower(),
         },
         "about_analysis": {
             "length": len(about),
             "score": about_score,
-            "has_cta": any(w in about.lower() for w in ["contact", "reach out", "connect", "message"]),
+            "has_cta": any(
+                w in about.lower()
+                for w in ["contact", "reach out", "connect", "message"]
+            ),
             "word_count": len(about.split()),
         },
         "skills_analysis": {
@@ -85,14 +93,24 @@ def _analyze_headline(headline: str) -> tuple[float, list[str]]:
 
     length = len(headline)
     if length < 20:
-        suggestions.append("Your headline is too short. Include your role and key skills.")
+        suggestions.append(
+            "Your headline is too short. Include your role and key skills."
+        )
     elif length > 220:
         suggestions.append("Your headline is too long. Keep it under 220 characters.")
     else:
         score += 30
 
     # Check for keywords
-    keywords = ["engineer", "developer", "manager", "analyst", "designer", "architect", "lead"]
+    keywords = [
+        "engineer",
+        "developer",
+        "manager",
+        "analyst",
+        "designer",
+        "architect",
+        "lead",
+    ]
     if any(kw in headline.lower() for kw in keywords):
         score += 20
 
@@ -101,10 +119,19 @@ def _analyze_headline(headline: str) -> tuple[float, list[str]]:
     if skills:
         score += 20
     else:
-        suggestions.append("Add relevant skills to your headline for better searchability")
+        suggestions.append(
+            "Add relevant skills to your headline for better searchability"
+        )
 
     # Check for value proposition
-    value_words = ["helping", "building", "creating", "leading", "driving", "delivering"]
+    value_words = [
+        "helping",
+        "building",
+        "creating",
+        "leading",
+        "driving",
+        "delivering",
+    ]
     if any(w in headline.lower() for w in value_words):
         score += 15
 
@@ -127,7 +154,9 @@ def _analyze_about(about: str) -> tuple[float, list[str]]:
     if word_count < 50:
         suggestions.append("Your about section is too short. Aim for 100-300 words.")
     elif word_count > 500:
-        suggestions.append("Your about section is quite long. Consider trimming to 200-400 words.")
+        suggestions.append(
+            "Your about section is quite long. Consider trimming to 200-400 words."
+        )
     else:
         score += 30
 
@@ -136,33 +165,46 @@ def _analyze_about(about: str) -> tuple[float, list[str]]:
     if any(fp in about for fp in first_person):
         score += 15
     else:
-        suggestions.append("Write in first person to make your about section more personal")
+        suggestions.append(
+            "Write in first person to make your about section more personal"
+        )
 
     # Check for quantifiable achievements
-    numbers = re.findall(r'\d+[%x+]?\s*(?:million|billion|k|users|customers|revenue|team|projects?)', about.lower())
+    numbers = re.findall(
+        r"\d+[%x+]?\s*(?:million|billion|k|users|customers|revenue|team|projects?)",
+        about.lower(),
+    )
     if numbers:
         score += 20
     else:
-        suggestions.append("Add quantifiable achievements (numbers, percentages, metrics)")
+        suggestions.append(
+            "Add quantifiable achievements (numbers, percentages, metrics)"
+        )
 
     # Check for call to action
     cta_words = ["contact", "reach out", "connect", "message", "email", "linkedin"]
     if any(w in about.lower() for w in cta_words):
         score += 15
     else:
-        suggestions.append("Add a call-to-action at the end (e.g., 'Feel free to reach out')")
+        suggestions.append(
+            "Add a call-to-action at the end (e.g., 'Feel free to reach out')"
+        )
 
     # Check for keywords
     skills = _extract_skills(about)
     if len(skills) >= 3:
         score += 20
     else:
-        suggestions.append("Include more relevant skills and keywords for better searchability")
+        suggestions.append(
+            "Include more relevant skills and keywords for better searchability"
+        )
 
     return min(score, 100), suggestions
 
 
-def _analyze_skills(skills_text: str, detected_skills: list[str]) -> tuple[float, list[str]]:
+def _analyze_skills(
+    skills_text: str, detected_skills: list[str]
+) -> tuple[float, list[str]]:
     """Analyze LinkedIn skills section."""
     score = 0
     suggestions = []
@@ -174,7 +216,9 @@ def _analyze_skills(skills_text: str, detected_skills: list[str]) -> tuple[float
     if skill_count < 5:
         suggestions.append("Add more skills. Aim for at least 10-15 relevant skills.")
     elif skill_count > 30:
-        suggestions.append("You have many skills listed. Focus on the most relevant ones.")
+        suggestions.append(
+            "You have many skills listed. Focus on the most relevant ones."
+        )
     else:
         score += 40
 
@@ -183,7 +227,16 @@ def _analyze_skills(skills_text: str, detected_skills: list[str]) -> tuple[float
         score += 10  # Likely has endorsement counts
 
     # Check for skill relevance
-    high_demand_skills = ["python", "javascript", "react", "aws", "docker", "kubernetes", "typescript", "node.js"]
+    high_demand_skills = [
+        "python",
+        "javascript",
+        "react",
+        "aws",
+        "docker",
+        "kubernetes",
+        "typescript",
+        "node.js",
+    ]
     matched_demand = [s for s in detected_skills if s in high_demand_skills]
     if matched_demand:
         score += 30
@@ -212,14 +265,29 @@ def _analyze_experience(experience: str) -> tuple[float, list[str]]:
         score += 30
 
     # Check for quantifiable results
-    numbers = re.findall(r'\d+[%x+]?\s*(?:million|billion|k|users|customers|revenue|team|projects?|percent)', experience.lower())
+    numbers = re.findall(
+        r"\d+[%x+]?\s*(?:million|billion|k|users|customers|revenue|team|projects?|percent)",
+        experience.lower(),
+    )
     if numbers:
         score += 30
     else:
         suggestions.append("Add metrics and numbers to your experience descriptions")
 
     # Check for action verbs
-    action_verbs = ["led", "built", "developed", "implemented", "designed", "managed", "created", "improved", "increased", "reduced", "launched"]
+    action_verbs = [
+        "led",
+        "built",
+        "developed",
+        "implemented",
+        "designed",
+        "managed",
+        "created",
+        "improved",
+        "increased",
+        "reduced",
+        "launched",
+    ]
     verb_count = sum(1 for v in action_verbs if v in experience.lower())
     if verb_count >= 3:
         score += 20
@@ -239,10 +307,30 @@ def _analyze_experience(experience: str) -> tuple[float, list[str]]:
 def _find_missing_keywords(text: str) -> list[str]:
     """Find high-demand keywords missing from the profile."""
     high_demand = [
-        "python", "javascript", "react", "node.js", "aws", "docker", "kubernetes",
-        "typescript", "git", "ci/cd", "agile", "sql", "rest api", "graphql",
-        "machine learning", "data analysis", "cloud", "microservices", "api",
-        "linux", "postgresql", "mongodb", "redis", "terraform",
+        "python",
+        "javascript",
+        "react",
+        "node.js",
+        "aws",
+        "docker",
+        "kubernetes",
+        "typescript",
+        "git",
+        "ci/cd",
+        "agile",
+        "sql",
+        "rest api",
+        "graphql",
+        "machine learning",
+        "data analysis",
+        "cloud",
+        "microservices",
+        "api",
+        "linux",
+        "postgresql",
+        "mongodb",
+        "redis",
+        "terraform",
     ]
 
     text_lower = text.lower()
@@ -250,7 +338,9 @@ def _find_missing_keywords(text: str) -> list[str]:
     return missing[:10]  # Top 10 missing
 
 
-def _calculate_visibility_score(headline: str, about: str, skills: str, experience: str) -> float:
+def _calculate_visibility_score(
+    headline: str, about: str, skills: str, experience: str
+) -> float:
     """Calculate recruiter visibility score (0-100)."""
     score = 0
 
@@ -288,10 +378,17 @@ def _calculate_visibility_score(headline: str, about: str, skills: str, experien
     return min(score, 100)
 
 
-def _calculate_strength_score(headline: float, about: float, skills: float, experience: float) -> float:
+def _calculate_strength_score(
+    headline: float, about: float, skills: float, experience: float
+) -> float:
     """Calculate overall profile strength score (0-100)."""
     weights = {"headline": 0.2, "about": 0.25, "skills": 0.25, "experience": 0.3}
-    scores = {"headline": headline, "about": about, "skills": skills, "experience": experience}
+    scores = {
+        "headline": headline,
+        "about": about,
+        "skills": skills,
+        "experience": experience,
+    }
 
     total = sum(scores[k] * weights[k] for k in scores)
     return min(total, 100)

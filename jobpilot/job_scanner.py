@@ -6,9 +6,7 @@ from typing import Optional
 
 from jobpilot import database as db
 from jobpilot.config import DB_PATH
-from jobpilot.models import (
-    JobListing, AlertSubscription, UserProfile, MatchResult
-)
+from jobpilot.models import JobListing, AlertSubscription, UserProfile, MatchResult
 from jobpilot.matcher import compute_match
 from jobpilot.profile import load_profile
 
@@ -39,7 +37,13 @@ class JobScanner:
         start_time = time.time()
         scraper_cls = SCRAPERS.get(source)
         if not scraper_cls:
-            return {"source": source, "jobs_found": 0, "new_jobs_found": 0, "new_jobs": [], "duration": 0}
+            return {
+                "source": source,
+                "jobs_found": 0,
+                "new_jobs_found": 0,
+                "new_jobs": [],
+                "duration": 0,
+            }
 
         scraper = scraper_cls()
         all_jobs = []
@@ -118,7 +122,11 @@ class JobScanner:
             "notifications_created": notifications_created,
             "duration": round(duration, 2),
             "source_results": [
-                {"source": r["source"], "found": r["jobs_found"], "new": r["new_jobs_found"]}
+                {
+                    "source": r["source"],
+                    "found": r["jobs_found"],
+                    "new": r["new_jobs_found"],
+                }
                 for r in results
             ],
         }
@@ -183,7 +191,10 @@ class JobScanner:
         # Check role match
         if alert.role:
             role_lower = alert.role.lower()
-            if role_lower not in job.title.lower() and role_lower not in job.description.lower():
+            if (
+                role_lower not in job.title.lower()
+                and role_lower not in job.description.lower()
+            ):
                 return False
 
         # Check location match
@@ -237,11 +248,14 @@ class JobScanner:
         """
         conn = db.get_connection(self.db_path)
         try:
-            cur = conn.execute("""
+            cur = conn.execute(
+                """
                 UPDATE jobs SET is_active = 0
                 WHERE is_active = 1
                 AND discovered_at < DATE('now', ?)
-            """, (f"-{max_age_days} days",))
+            """,
+                (f"-{max_age_days} days",),
+            )
             conn.commit()
             return cur.rowcount
         finally:

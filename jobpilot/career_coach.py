@@ -32,7 +32,9 @@ class CareerCoach:
         question_lower = question.lower()
 
         # Route to appropriate handler
-        if any(word in question_lower for word in ["ats", "resume score", "resume quality"]):
+        if any(
+            word in question_lower for word in ["ats", "resume score", "resume quality"]
+        ):
             return self._handle_ats_question(question, profile)
         elif any(word in question_lower for word in ["project", "portfolio", "github"]):
             return self._handle_project_question(question, profile)
@@ -40,11 +42,15 @@ class CareerCoach:
             return self._handle_company_question(question, profile)
         elif any(word in question_lower for word in ["improve", "better", "enhance"]):
             return self._handle_improvement_question(question, profile)
-        elif any(word in question_lower for word in ["certificate", "cert", "certification"]):
+        elif any(
+            word in question_lower for word in ["certificate", "cert", "certification"]
+        ):
             return self._handle_certificate_question(question, profile)
         elif any(word in question_lower for word in ["salary", "pay", "compensation"]):
             return self._handle_salary_question(question, profile)
-        elif any(word in question_lower for word in ["interview", "prepare", "practice"]):
+        elif any(
+            word in question_lower for word in ["interview", "prepare", "practice"]
+        ):
             return self._handle_interview_question(question, profile)
         elif any(word in question_lower for word in ["skill", "learn", "technology"]):
             return self._handle_skill_question(question, profile)
@@ -89,8 +95,16 @@ class CareerCoach:
         return {
             "question": question,
             "answer": answer,
-            "context": {"skill_count": skill_count, "has_email": has_email, "has_linkedin": has_linkedin},
-            "suggestions": ["Add more skills", "Complete contact info", "Add quantifiable results"],
+            "context": {
+                "skill_count": skill_count,
+                "has_email": has_email,
+                "has_linkedin": has_linkedin,
+            },
+            "suggestions": [
+                "Add more skills",
+                "Complete contact info",
+                "Add quantifiable results",
+            ],
         }
 
     def _handle_project_question(self, question: str, profile: UserProfile) -> dict:
@@ -100,13 +114,33 @@ class CareerCoach:
         # Suggest projects based on skills
         project_suggestions = []
         if "python" in skills:
-            project_suggestions.append({"name": "REST API with FastAPI", "description": "Build a production-ready API with authentication, database, and tests"})
+            project_suggestions.append(
+                {
+                    "name": "REST API with FastAPI",
+                    "description": "Build a production-ready API with authentication, database, and tests",
+                }
+            )
         if "react" in skills or "javascript" in skills:
-            project_suggestions.append({"name": "Full-Stack Dashboard", "description": "Create a real-time analytics dashboard with React frontend and Node.js backend"})
+            project_suggestions.append(
+                {
+                    "name": "Full-Stack Dashboard",
+                    "description": "Create a real-time analytics dashboard with React frontend and Node.js backend",
+                }
+            )
         if "docker" in skills or "kubernetes" in skills:
-            project_suggestions.append({"name": "CI/CD Pipeline", "description": "Set up automated testing and deployment with Docker and GitHub Actions"})
+            project_suggestions.append(
+                {
+                    "name": "CI/CD Pipeline",
+                    "description": "Set up automated testing and deployment with Docker and GitHub Actions",
+                }
+            )
         if "aws" in skills or "cloud" in str(profile.cloud_platforms).lower():
-            project_suggestions.append({"name": "Cloud Architecture", "description": "Deploy a scalable application on AWS with auto-scaling and monitoring"})
+            project_suggestions.append(
+                {
+                    "name": "Cloud Architecture",
+                    "description": "Deploy a scalable application on AWS with auto-scaling and monitoring",
+                }
+            )
 
         answer = f"""Here are project suggestions based on your skills:
 
@@ -126,7 +160,11 @@ class CareerCoach:
             "question": question,
             "answer": answer,
             "context": {"skills": skills, "project_count": len(project_suggestions)},
-            "suggestions": ["Build portfolio projects", "Deploy to production", "Add documentation"],
+            "suggestions": [
+                "Build portfolio projects",
+                "Deploy to production",
+                "Add documentation",
+            ],
         }
 
     def _handle_company_question(self, question: str, profile: UserProfile) -> dict:
@@ -140,12 +178,14 @@ class CareerCoach:
         for job in jobs[:50]:  # Check first 50 jobs
             match = compute_match(profile, job)
             if match.overall_score >= 0.5:
-                matching_jobs.append({
-                    "company": job.company,
-                    "title": job.title,
-                    "score": match.overall_score,
-                    "missing": match.missing_skills[:3],
-                })
+                matching_jobs.append(
+                    {
+                        "company": job.company,
+                        "title": job.title,
+                        "score": match.overall_score,
+                        "missing": match.missing_skills[:3],
+                    }
+                )
 
         matching_jobs.sort(key=lambda x: x["score"], reverse=True)
 
@@ -167,7 +207,11 @@ class CareerCoach:
             "question": question,
             "answer": answer,
             "context": {"matching_companies": len(matching_jobs)},
-            "suggestions": ["Apply to top matches", "Highlight matching skills", "Research company culture"],
+            "suggestions": [
+                "Apply to top matches",
+                "Highlight matching skills",
+                "Research company culture",
+            ],
         }
 
     def _handle_improvement_question(self, question: str, profile: UserProfile) -> dict:
@@ -182,7 +226,9 @@ class CareerCoach:
         if not profile.github:
             improvements.append("Set up a GitHub portfolio")
         if profile.experience_years < 2:
-            improvements.append("Gain more work experience through internships or projects")
+            improvements.append(
+                "Gain more work experience through internships or projects"
+            )
 
         answer = f"""Here's how you can improve your profile:
 
@@ -214,18 +260,46 @@ class CareerCoach:
 
         cert_recommendations = []
         if "aws" in skills or "cloud" in str(profile.cloud_platforms).lower():
-            cert_recommendations.append({"name": "AWS Solutions Architect", "provider": "Amazon", "value": "High"})
+            cert_recommendations.append(
+                {
+                    "name": "AWS Solutions Architect",
+                    "provider": "Amazon",
+                    "value": "High",
+                }
+            )
         if "python" in skills:
-            cert_recommendations.append({"name": "Python Professional", "provider": "PCEP/PCAP", "value": "Medium"})
+            cert_recommendations.append(
+                {
+                    "name": "Python Professional",
+                    "provider": "PCEP/PCAP",
+                    "value": "Medium",
+                }
+            )
         if "docker" in skills or "kubernetes" in str(skills):
-            cert_recommendations.append({"name": "Certified Kubernetes Administrator", "provider": "CNCF", "value": "High"})
+            cert_recommendations.append(
+                {
+                    "name": "Certified Kubernetes Administrator",
+                    "provider": "CNCF",
+                    "value": "High",
+                }
+            )
         if "security" in str(skills).lower():
-            cert_recommendations.append({"name": "CompTIA Security+", "provider": "CompTIA", "value": "High"})
+            cert_recommendations.append(
+                {"name": "CompTIA Security+", "provider": "CompTIA", "value": "High"}
+            )
 
         if not cert_recommendations:
             cert_recommendations = [
-                {"name": "AWS Cloud Practitioner", "provider": "Amazon", "value": "Entry-level"},
-                {"name": "Google Cloud Associate", "provider": "Google", "value": "Entry-level"},
+                {
+                    "name": "AWS Cloud Practitioner",
+                    "provider": "Amazon",
+                    "value": "Entry-level",
+                },
+                {
+                    "name": "Google Cloud Associate",
+                    "provider": "Google",
+                    "value": "Entry-level",
+                },
             ]
 
         answer = f"""Recommended certifications for your profile:
@@ -243,7 +317,11 @@ class CareerCoach:
             "question": question,
             "answer": answer,
             "context": {"recommendations": len(cert_recommendations)},
-            "suggestions": ["Get cloud certification", "Add to LinkedIn", "Include in resume"],
+            "suggestions": [
+                "Get cloud certification",
+                "Add to LinkedIn",
+                "Include in resume",
+            ],
         }
 
     def _handle_salary_question(self, question: str, profile: UserProfile) -> dict:
@@ -261,7 +339,14 @@ class CareerCoach:
             base_salary = 70000
 
         # Skill premium
-        premium_skills = {"python", "react", "aws", "kubernetes", "docker", "machine learning"}
+        premium_skills = {
+            "python",
+            "react",
+            "aws",
+            "kubernetes",
+            "docker",
+            "machine learning",
+        }
         skill_bonus = len(set(skills) & premium_skills) * 5000
 
         estimated_min = base_salary
@@ -294,7 +379,11 @@ class CareerCoach:
             "question": question,
             "answer": answer,
             "context": {"estimated_min": estimated_min, "estimated_max": estimated_max},
-            "suggestions": ["Research market rates", "Negotiate with data", "Consider total comp"],
+            "suggestions": [
+                "Research market rates",
+                "Negotiate with data",
+                "Consider total comp",
+            ],
         }
 
     def _handle_interview_question(self, question: str, profile: UserProfile) -> dict:
@@ -330,7 +419,11 @@ class CareerCoach:
             "question": question,
             "answer": answer,
             "context": {"skills_count": len(skills)},
-            "suggestions": ["Practice coding daily", "Prepare STAR stories", "Research company"],
+            "suggestions": [
+                "Practice coding daily",
+                "Prepare STAR stories",
+                "Research company",
+            ],
         }
 
     def _handle_skill_question(self, question: str, profile: UserProfile) -> dict:
@@ -338,7 +431,16 @@ class CareerCoach:
         skills = profile.all_skills
 
         # Identify skill gaps based on job market
-        market_demand = ["python", "javascript", "react", "aws", "docker", "kubernetes", "typescript", "node.js"]
+        market_demand = [
+            "python",
+            "javascript",
+            "react",
+            "aws",
+            "docker",
+            "kubernetes",
+            "typescript",
+            "node.js",
+        ]
         missing_demand = [s for s in market_demand if s not in skills]
 
         answer = f"""Here's your skill analysis:
@@ -364,7 +466,10 @@ class CareerCoach:
         return {
             "question": question,
             "answer": answer,
-            "context": {"current_skills": len(skills), "missing_demand": len(missing_demand)},
+            "context": {
+                "current_skills": len(skills),
+                "missing_demand": len(missing_demand),
+            },
             "suggestions": missing_demand[:3],
         }
 

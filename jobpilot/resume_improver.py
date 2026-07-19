@@ -1,8 +1,13 @@
 """AI Resume Improvement Suggestions for JobPilot."""
 
 from jobpilot.resume_analyzer import (
-    analyze_resume, _extract_skills, _detect_sections, _compute_ats_score,
-    _extract_contact, _estimate_experience_years, _generate_suggestions,
+    analyze_resume,
+    _extract_skills,
+    _detect_sections,
+    _compute_ats_score,
+    _extract_contact,
+    _estimate_experience_years,
+    _generate_suggestions,
     SKILL_DATABASE,
 )
 
@@ -39,7 +44,9 @@ def generate_improvement_report(
     weaknesses = _identify_weaknesses(sections, skills, contact, resume_text)
 
     # Generate specific improvements
-    improvements = _generate_improvements(sections, skills, contact, resume_text, target_role, experience_years)
+    improvements = _generate_improvements(
+        sections, skills, contact, resume_text, target_role, experience_years
+    )
 
     # Recommend keywords
     recommended_keywords = _recommend_keywords(skills, target_role, resume_text)
@@ -76,7 +83,9 @@ def generate_improvement_report(
     }
 
 
-def _identify_strengths(sections: dict, skills: list, contact: dict, experience_years: int) -> list[str]:
+def _identify_strengths(
+    sections: dict, skills: list, contact: dict, experience_years: int
+) -> list[str]:
     """Identify resume strengths."""
     strengths = []
 
@@ -94,7 +103,9 @@ def _identify_strengths(sections: dict, skills: list, contact: dict, experience_
 
     # Skills
     if len(skills) >= 8:
-        strengths.append(f"Good skill diversity with {len(skills)} technical skills identified")
+        strengths.append(
+            f"Good skill diversity with {len(skills)} technical skills identified"
+        )
 
     # Experience
     if experience_years >= 3:
@@ -102,11 +113,15 @@ def _identify_strengths(sections: dict, skills: list, contact: dict, experience_
 
     # Projects section
     if "projects" in sections:
-        strengths.append("Includes projects section — demonstrates practical experience")
+        strengths.append(
+            "Includes projects section — demonstrates practical experience"
+        )
 
     # Certifications
     if "certifications" in sections:
-        strengths.append("Includes certifications — shows commitment to professional development")
+        strengths.append(
+            "Includes certifications — shows commitment to professional development"
+        )
 
     # Summary
     if "summary" in sections:
@@ -115,7 +130,9 @@ def _identify_strengths(sections: dict, skills: list, contact: dict, experience_
     return strengths
 
 
-def _identify_weaknesses(sections: dict, skills: list, contact: dict, resume_text: str) -> list[str]:
+def _identify_weaknesses(
+    sections: dict, skills: list, contact: dict, resume_text: str
+) -> list[str]:
     """Identify resume weaknesses."""
     weaknesses = []
 
@@ -123,7 +140,9 @@ def _identify_weaknesses(sections: dict, skills: list, contact: dict, resume_tex
     if "email" not in contact:
         weaknesses.append("Missing email address — essential for recruiter contact")
     if "phone" not in contact:
-        weaknesses.append("Missing phone number — many recruiters prefer phone screening")
+        weaknesses.append(
+            "Missing phone number — many recruiters prefer phone screening"
+        )
     if "linkedin" not in contact:
         weaknesses.append("Missing LinkedIn profile — expected by most recruiters")
 
@@ -133,108 +152,153 @@ def _identify_weaknesses(sections: dict, skills: list, contact: dict, resume_tex
     if "experience" not in sections:
         weaknesses.append("Missing work experience section — critical for most roles")
     if "projects" not in sections:
-        weaknesses.append("No projects section — missed opportunity to show practical skills")
+        weaknesses.append(
+            "No projects section — missed opportunity to show practical skills"
+        )
 
     # Skills
     if len(skills) < 5:
-        weaknesses.append(f"Only {len(skills)} skills detected — consider adding more relevant technologies")
+        weaknesses.append(
+            f"Only {len(skills)} skills detected — consider adding more relevant technologies"
+        )
 
     # Text quality
     word_count = len(resume_text.split())
     if word_count < 150:
-        weaknesses.append("Resume is too short — add more details about experience and skills")
+        weaknesses.append(
+            "Resume is too short — add more details about experience and skills"
+        )
     elif word_count > 800:
         weaknesses.append("Resume is quite long — consider condensing to 1-2 pages")
 
     # Quantifiable results
     import re
-    numbers = re.findall(r'\d+[%x+]?\s*(?:million|billion|k|users|customers|revenue|team|projects?)', resume_text.lower())
+
+    numbers = re.findall(
+        r"\d+[%x+]?\s*(?:million|billion|k|users|customers|revenue|team|projects?)",
+        resume_text.lower(),
+    )
     if len(numbers) < 2:
         weaknesses.append("Few quantifiable achievements — add metrics and numbers")
 
     return weaknesses
 
 
-def _generate_improvements(sections: dict, skills: list, contact: dict, resume_text: str, target_role: str, experience_years: int = 0) -> list[dict]:
+def _generate_improvements(
+    sections: dict,
+    skills: list,
+    contact: dict,
+    resume_text: str,
+    target_role: str,
+    experience_years: int = 0,
+) -> list[dict]:
     """Generate specific improvement suggestions."""
     improvements = []
 
     # ATS improvements
     if "summary" not in sections:
-        improvements.append({
-            "category": "ats",
-            "title": "Add Professional Summary",
-            "description": "Add a 2-3 sentence professional summary at the top of your resume. Include your years of experience, key skills, and career objective.",
-            "priority": "high",
-            "impact": "high",
-        })
+        improvements.append(
+            {
+                "category": "ats",
+                "title": "Add Professional Summary",
+                "description": "Add a 2-3 sentence professional summary at the top of your resume. Include your years of experience, key skills, and career objective.",
+                "priority": "high",
+                "impact": "high",
+            }
+        )
 
     if len(skills) < 8:
-        improvements.append({
-            "category": "skills",
-            "title": "Expand Technical Skills",
-            "description": "Add more relevant technical skills to your skills section. Include both hard skills (programming languages, frameworks) and soft skills.",
-            "priority": "high",
-            "impact": "medium",
-        })
+        improvements.append(
+            {
+                "category": "skills",
+                "title": "Expand Technical Skills",
+                "description": "Add more relevant technical skills to your skills section. Include both hard skills (programming languages, frameworks) and soft skills.",
+                "priority": "high",
+                "impact": "medium",
+            }
+        )
 
     # Keyword optimization
     if target_role:
         target_skills = _get_skills_for_role(target_role)
         missing = [s for s in target_skills if s not in skills]
         if missing:
-            improvements.append({
-                "category": "keywords",
-                "title": "Add Role-Specific Keywords",
-                "description": f"Add these keywords relevant to {target_role}: {', '.join(missing[:5])}",
-                "priority": "high",
-                "impact": "high",
-            })
+            improvements.append(
+                {
+                    "category": "keywords",
+                    "title": "Add Role-Specific Keywords",
+                    "description": f"Add these keywords relevant to {target_role}: {', '.join(missing[:5])}",
+                    "priority": "high",
+                    "impact": "high",
+                }
+            )
 
     # Formatting
     if not sections.get("summary"):
-        improvements.append({
-            "category": "formatting",
-            "title": "Improve Resume Structure",
-            "description": "Ensure consistent section headings and formatting. Use standard section names (Summary, Experience, Education, Skills).",
-            "priority": "medium",
-            "impact": "medium",
-        })
+        improvements.append(
+            {
+                "category": "formatting",
+                "title": "Improve Resume Structure",
+                "description": "Ensure consistent section headings and formatting. Use standard section names (Summary, Experience, Education, Skills).",
+                "priority": "medium",
+                "impact": "medium",
+            }
+        )
 
     # Quantifiable results
     import re
-    numbers = re.findall(r'\d+', resume_text)
+
+    numbers = re.findall(r"\d+", resume_text)
     if len(numbers) < 3:
-        improvements.append({
-            "category": "content",
-            "title": "Add Quantifiable Achievements",
-            "description": "Include numbers and metrics in your experience descriptions. For example: 'Increased performance by 40%' or 'Managed team of 5 engineers'.",
-            "priority": "high",
-            "impact": "high",
-        })
+        improvements.append(
+            {
+                "category": "content",
+                "title": "Add Quantifiable Achievements",
+                "description": "Include numbers and metrics in your experience descriptions. For example: 'Increased performance by 40%' or 'Managed team of 5 engineers'.",
+                "priority": "high",
+                "impact": "high",
+            }
+        )
 
     # Action verbs
-    action_verbs = ["led", "built", "developed", "implemented", "designed", "managed", "created", "improved", "increased", "reduced", "launched", "optimized"]
+    action_verbs = [
+        "led",
+        "built",
+        "developed",
+        "implemented",
+        "designed",
+        "managed",
+        "created",
+        "improved",
+        "increased",
+        "reduced",
+        "launched",
+        "optimized",
+    ]
     text_lower = text_lower = resume_text.lower()
     verb_count = sum(1 for v in action_verbs if v in text_lower)
     if verb_count < 5:
-        improvements.append({
-            "category": "content",
-            "title": "Use Stronger Action Verbs",
-            "description": "Start bullet points with action verbs like 'Led', 'Built', 'Implemented', 'Optimized'. Avoid passive language.",
-            "priority": "medium",
-            "impact": "medium",
-        })
+        improvements.append(
+            {
+                "category": "content",
+                "title": "Use Stronger Action Verbs",
+                "description": "Start bullet points with action verbs like 'Led', 'Built', 'Implemented', 'Optimized'. Avoid passive language.",
+                "priority": "medium",
+                "impact": "medium",
+            }
+        )
 
     # Projects section
     if "projects" not in sections and experience_years <= 2:
-        improvements.append({
-            "category": "content",
-            "title": "Add Projects Section",
-            "description": "Include a projects section to showcase practical experience, especially if you have limited work experience.",
-            "priority": "medium",
-            "impact": "medium",
-        })
+        improvements.append(
+            {
+                "category": "content",
+                "title": "Add Projects Section",
+                "description": "Include a projects section to showcase practical experience, especially if you have limited work experience.",
+                "priority": "medium",
+                "impact": "medium",
+            }
+        )
 
     return improvements
 
@@ -249,9 +313,24 @@ def _recommend_keywords(skills: list, target_role: str, resume_text: str) -> lis
         keywords.extend([k for k in role_keywords if k not in skills])
 
     # Get high-demand keywords
-    high_demand = ["python", "javascript", "react", "aws", "docker", "kubernetes", "typescript", "node.js", "git", "ci/cd", "agile", "sql"]
+    high_demand = [
+        "python",
+        "javascript",
+        "react",
+        "aws",
+        "docker",
+        "kubernetes",
+        "typescript",
+        "node.js",
+        "git",
+        "ci/cd",
+        "agile",
+        "sql",
+    ]
     text_lower = resume_text.lower()
-    keywords.extend([k for k in high_demand if k not in text_lower and k not in keywords])
+    keywords.extend(
+        [k for k in high_demand if k not in text_lower and k not in keywords]
+    )
 
     # Remove duplicates and limit
     seen = set()
@@ -267,13 +346,76 @@ def _recommend_keywords(skills: list, target_role: str, resume_text: str) -> lis
 def _get_skills_for_role(role: str) -> list[str]:
     """Get relevant skills for a specific role."""
     role_skills = {
-        "backend": ["python", "node.js", "sql", "postgresql", "redis", "docker", "rest api", "graphql"],
-        "frontend": ["javascript", "react", "html", "css", "typescript", "vue", "angular", "tailwind"],
-        "full stack": ["javascript", "react", "node.js", "python", "sql", "docker", "rest api", "git"],
-        "devops": ["docker", "kubernetes", "terraform", "aws", "ci/cd", "linux", "ansible", "jenkins"],
-        "data engineer": ["python", "sql", "spark", "airflow", "kafka", "aws", "docker", "etl"],
-        "ml engineer": ["python", "pytorch", "tensorflow", "sql", "docker", "kubernetes", "aws", "scikit-learn"],
-        "software engineer": ["python", "java", "git", "sql", "docker", "rest api", "agile", "ci/cd"],
+        "backend": [
+            "python",
+            "node.js",
+            "sql",
+            "postgresql",
+            "redis",
+            "docker",
+            "rest api",
+            "graphql",
+        ],
+        "frontend": [
+            "javascript",
+            "react",
+            "html",
+            "css",
+            "typescript",
+            "vue",
+            "angular",
+            "tailwind",
+        ],
+        "full stack": [
+            "javascript",
+            "react",
+            "node.js",
+            "python",
+            "sql",
+            "docker",
+            "rest api",
+            "git",
+        ],
+        "devops": [
+            "docker",
+            "kubernetes",
+            "terraform",
+            "aws",
+            "ci/cd",
+            "linux",
+            "ansible",
+            "jenkins",
+        ],
+        "data engineer": [
+            "python",
+            "sql",
+            "spark",
+            "airflow",
+            "kafka",
+            "aws",
+            "docker",
+            "etl",
+        ],
+        "ml engineer": [
+            "python",
+            "pytorch",
+            "tensorflow",
+            "sql",
+            "docker",
+            "kubernetes",
+            "aws",
+            "scikit-learn",
+        ],
+        "software engineer": [
+            "python",
+            "java",
+            "git",
+            "sql",
+            "docker",
+            "rest api",
+            "agile",
+            "ci/cd",
+        ],
     }
 
     role_lower = role.lower()

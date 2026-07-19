@@ -18,7 +18,6 @@ from jobpilot import database as db
 from jobpilot.config import DB_PATH
 from jobpilot.auth import get_password_hash, create_access_token
 
-
 # Test database path
 TEST_DB = Path(__file__).resolve().parent / "test_qa.db"
 
@@ -67,13 +66,13 @@ def auth_client():
     password = "TestPass123!"
 
     from jobpilot.auth import register_user
+
     register_user(email, password, "Test User")
 
     # Login and get token
-    response = client.post("/api/auth/login", data={
-        "username": email,
-        "password": password
-    })
+    response = client.post(
+        "/api/auth/login", data={"username": email, "password": password}
+    )
     token = response.json()["access_token"]
 
     # Create authenticated client
@@ -85,6 +84,7 @@ def auth_client():
 def sample_job():
     """Create a sample job listing."""
     from jobpilot.models import JobListing
+
     return JobListing(
         company="TestCorp",
         title="Python Developer",
@@ -103,6 +103,7 @@ def sample_job():
 def sample_profile():
     """Create a sample user profile."""
     from jobpilot.models import UserProfile
+
     return UserProfile(
         name="John Doe",
         email="john@example.com",

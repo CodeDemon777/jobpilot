@@ -12,22 +12,22 @@ from jobpilot.web.app import app
 from jobpilot import database as db
 from jobpilot.auth import register_user, get_password_hash
 
-
 client = TestClient(app)
 
 # Performance thresholds (seconds)
 THRESHOLDS = {
-    "api_response": 5.0,      # Max API response time
-    "database_query": 3.0,    # Max database query time
+    "api_response": 5.0,  # Max API response time
+    "database_query": 3.0,  # Max database query time
     "resume_analysis": 10.0,  # Max resume analysis time
-    "job_search": 5.0,        # Max job search time
-    "page_load": 2.0,         # Max page load time
+    "job_search": 5.0,  # Max job search time
+    "page_load": 2.0,  # Max page load time
 }
 
 
 # =====================================================
 # API RESPONSE TIME TESTS
 # =====================================================
+
 
 class TestAPIResponseTimes(unittest.TestCase):
     def test_health_endpoint_speed(self):
@@ -36,7 +36,9 @@ class TestAPIResponseTimes(unittest.TestCase):
         response = client.get("/health")
         duration = time.time() - start
         assert response.status_code == 200
-        assert duration < THRESHOLDS["api_response"], f"Health endpoint too slow: {duration:.3f}s"
+        assert (
+            duration < THRESHOLDS["api_response"]
+        ), f"Health endpoint too slow: {duration:.3f}s"
 
     def test_jobs_list_speed(self):
         """Test jobs listing responds quickly."""
@@ -44,47 +46,65 @@ class TestAPIResponseTimes(unittest.TestCase):
         response = client.get("/api/jobs")
         duration = time.time() - start
         assert response.status_code == 200
-        assert duration < THRESHOLDS["api_response"], f"Jobs list too slow: {duration:.3f}s"
+        assert (
+            duration < THRESHOLDS["api_response"]
+        ), f"Jobs list too slow: {duration:.3f}s"
 
     def test_resume_analysis_speed(self):
         """Test resume analysis completes within threshold."""
         start = time.time()
-        response = client.post("/api/resume/analyze", json={
-            "text": "John Doe\nPython developer with 5 years experience.\nSkills: Python, Django, PostgreSQL",
-            "target_role": "backend engineer",
-        })
+        response = client.post(
+            "/api/resume/analyze",
+            json={
+                "text": "John Doe\nPython developer with 5 years experience.\nSkills: Python, Django, PostgreSQL",
+                "target_role": "backend engineer",
+            },
+        )
         duration = time.time() - start
         assert response.status_code == 200
-        assert duration < THRESHOLDS["resume_analysis"], f"Resume analysis too slow: {duration:.3f}s"
+        assert (
+            duration < THRESHOLDS["resume_analysis"]
+        ), f"Resume analysis too slow: {duration:.3f}s"
 
     def test_cover_letter_generation_speed(self):
         """Test cover letter generation completes within threshold."""
         start = time.time()
-        response = client.post("/api/cover-letter/generate", json={
-            "resume_text": "Python developer with 5 years experience",
-            "job_description": "Looking for Python developer",
-            "company_name": "TestCorp",
-            "role_title": "Python Developer",
-        })
+        response = client.post(
+            "/api/cover-letter/generate",
+            json={
+                "resume_text": "Python developer with 5 years experience",
+                "job_description": "Looking for Python developer",
+                "company_name": "TestCorp",
+                "role_title": "Python Developer",
+            },
+        )
         duration = time.time() - start
         assert response.status_code == 200
-        assert duration < THRESHOLDS["api_response"], f"Cover letter too slow: {duration:.3f}s"
+        assert (
+            duration < THRESHOLDS["api_response"]
+        ), f"Cover letter too slow: {duration:.3f}s"
 
     def test_skill_gap_analysis_speed(self):
         """Test skill gap analysis completes within threshold."""
         start = time.time()
-        response = client.post("/api/skill-gap/analyze", json={
-            "resume_text": "Python developer with Django",
-            "job_description": "Python, Django, Docker, AWS",
-        })
+        response = client.post(
+            "/api/skill-gap/analyze",
+            json={
+                "resume_text": "Python developer with Django",
+                "job_description": "Python, Django, Docker, AWS",
+            },
+        )
         duration = time.time() - start
         assert response.status_code == 200
-        assert duration < THRESHOLDS["api_response"], f"Skill gap analysis too slow: {duration:.3f}s"
+        assert (
+            duration < THRESHOLDS["api_response"]
+        ), f"Skill gap analysis too slow: {duration:.3f}s"
 
 
 # =====================================================
 # DATABASE QUERY PERFORMANCE
 # =====================================================
+
 
 class TestDatabasePerformance(unittest.TestCase):
     def test_job_search_speed(self):
@@ -93,7 +113,9 @@ class TestDatabasePerformance(unittest.TestCase):
         response = client.get("/api/jobs?q=python")
         duration = time.time() - start
         assert response.status_code == 200
-        assert duration < THRESHOLDS["database_query"], f"DB search too slow: {duration:.3f}s"
+        assert (
+            duration < THRESHOLDS["database_query"]
+        ), f"DB search too slow: {duration:.3f}s"
 
     def test_jobs_list_query_speed(self):
         """Test listing all jobs performance."""
@@ -101,12 +123,15 @@ class TestDatabasePerformance(unittest.TestCase):
         response = client.get("/api/jobs")
         duration = time.time() - start
         assert response.status_code == 200
-        assert duration < THRESHOLDS["database_query"], f"DB list too slow: {duration:.3f}s"
+        assert (
+            duration < THRESHOLDS["database_query"]
+        ), f"DB list too slow: {duration:.3f}s"
 
 
 # =====================================================
 # CONCURRENT REQUEST TESTS
 # =====================================================
+
 
 class TestConcurrentRequests(unittest.TestCase):
     def test_concurrent_health_checks(self):
@@ -148,6 +173,7 @@ class TestConcurrentRequests(unittest.TestCase):
 # MEMORY USAGE TESTS
 # =====================================================
 
+
 class TestMemoryUsage(unittest.TestCase):
     def test_no_memory_leak_on_repeated_requests(self):
         """Test that repeated requests don't cause memory leaks."""
@@ -173,6 +199,7 @@ class TestMemoryUsage(unittest.TestCase):
 # FILE UPLOAD PERFORMANCE
 # =====================================================
 
+
 class TestFileUploadPerformance(unittest.TestCase):
     def test_upload_performance(self):
         """Test file upload performance."""
@@ -187,7 +214,9 @@ class TestFileUploadPerformance(unittest.TestCase):
         duration = time.time() - start
 
         assert response.status_code == 200
-        assert duration < THRESHOLDS["api_response"], f"Upload too slow: {duration:.3f}s"
+        assert (
+            duration < THRESHOLDS["api_response"]
+        ), f"Upload too slow: {duration:.3f}s"
 
     def test_large_file_rejection(self):
         """Test that large files are rejected quickly."""
@@ -230,7 +259,9 @@ if __name__ == "__main__":
     result = runner.run(suite)
 
     print(f"\n{'='*60}")
-    print(f"Performance Tests: {result.testsRun} run, {len(result.failures)} failures, {len(result.errors)} errors")
+    print(
+        f"Performance Tests: {result.testsRun} run, {len(result.failures)} failures, {len(result.errors)} errors"
+    )
     print(f"{'='*60}")
 
     sys.exit(0 if result.wasSuccessful() else 1)

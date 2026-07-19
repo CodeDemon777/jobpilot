@@ -9,10 +9,20 @@ from typing import Optional
 
 from jobpilot.config import DB_PATH
 from jobpilot.models import (
-    JobListing, MatchResult, Application, Company, Resume,
-    CoverLetter, InterviewQuestion, SkillGapReport, LinkedInReport,
-    TailoredResume, AlertSubscription, DashboardStats,
-    JobNotification, JobScanHistory,
+    JobListing,
+    MatchResult,
+    Application,
+    Company,
+    Resume,
+    CoverLetter,
+    InterviewQuestion,
+    SkillGapReport,
+    LinkedInReport,
+    TailoredResume,
+    AlertSubscription,
+    DashboardStats,
+    JobNotification,
+    JobScanHistory,
 )
 
 
@@ -401,26 +411,50 @@ def _create_tables(conn: sqlite3.Connection) -> None:
 
 # --- Jobs ---
 
+
 def upsert_job(job: JobListing, db_path: Path = DB_PATH) -> bool:
     """Insert or update a job. Returns True if new, False if updated."""
     conn = get_connection(db_path)
     try:
-        existing = conn.execute("SELECT id FROM jobs WHERE id = ?", (job.id,)).fetchone()
-        conn.execute("""
+        existing = conn.execute(
+            "SELECT id FROM jobs WHERE id = ?", (job.id,)
+        ).fetchone()
+        conn.execute(
+            """
             INSERT OR REPLACE INTO jobs
             (id, company, title, department, location, remote_status, employment_type,
              salary_min, salary_max, currency, required_skills, preferred_skills,
              experience_years, education, description, url, source, posted_date,
              application_url, tech_stack, visa_required, discovered_at, job_hash, is_active)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            job.id, job.company, job.title, job.department, job.location,
-            job.remote_status, job.employment_type, job.salary_min, job.salary_max,
-            job.currency, json.dumps(job.required_skills), json.dumps(job.preferred_skills),
-            job.experience_years, job.education, job.description, job.url, job.source,
-            job.posted_date, job.application_url, json.dumps(job.tech_stack),
-            job.visa_required, job.discovered_at, job.job_hash, job.is_active,
-        ))
+        """,
+            (
+                job.id,
+                job.company,
+                job.title,
+                job.department,
+                job.location,
+                job.remote_status,
+                job.employment_type,
+                job.salary_min,
+                job.salary_max,
+                job.currency,
+                json.dumps(job.required_skills),
+                json.dumps(job.preferred_skills),
+                job.experience_years,
+                job.education,
+                job.description,
+                job.url,
+                job.source,
+                job.posted_date,
+                job.application_url,
+                json.dumps(job.tech_stack),
+                job.visa_required,
+                job.discovered_at,
+                job.job_hash,
+                job.is_active,
+            ),
+        )
         conn.commit()
         return existing is None
     finally:
@@ -505,22 +539,32 @@ def _row_to_job(row: sqlite3.Row) -> JobListing:
 
 # --- Match Results ---
 
+
 def save_match_result(result: MatchResult, db_path: Path = DB_PATH) -> None:
     """Save a match result."""
     conn = get_connection(db_path)
     try:
-        conn.execute("""
+        conn.execute(
+            """
             INSERT INTO match_results
             (job_id, overall_score, skills_score, experience_score, relevance_score,
              education_score, role_score, location_score, strengths, weaknesses, missing_skills)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            result.job_id, result.overall_score, result.skills_score,
-            result.experience_score, result.relevance_score, result.education_score,
-            result.role_score, result.location_score,
-            json.dumps(result.strengths), json.dumps(result.weaknesses),
-            json.dumps(result.missing_skills),
-        ))
+        """,
+            (
+                result.job_id,
+                result.overall_score,
+                result.skills_score,
+                result.experience_score,
+                result.relevance_score,
+                result.education_score,
+                result.role_score,
+                result.location_score,
+                json.dumps(result.strengths),
+                json.dumps(result.weaknesses),
+                json.dumps(result.missing_skills),
+            ),
+        )
         conn.commit()
     finally:
         conn.close()
@@ -553,11 +597,14 @@ def get_match_result(job_id: str, db_path: Path = DB_PATH) -> MatchResult | None
         conn.close()
 
 
-def get_top_matches(limit: int = 20, db_path: Path = DB_PATH) -> list[tuple[JobListing, MatchResult]]:
+def get_top_matches(
+    limit: int = 20, db_path: Path = DB_PATH
+) -> list[tuple[JobListing, MatchResult]]:
     """Get top matching jobs with their match results."""
     conn = get_connection(db_path)
     try:
-        rows = conn.execute("""
+        rows = conn.execute(
+            """
             SELECT j.company, j.title, j.department, j.location, j.remote_status,
                    j.employment_type, j.salary_min, j.salary_max, j.currency, j.required_skills,
                    j.preferred_skills, j.experience_years, j.education, j.description, j.url,
@@ -570,7 +617,9 @@ def get_top_matches(limit: int = 20, db_path: Path = DB_PATH) -> list[tuple[JobL
             JOIN match_results m ON j.id = m.job_id
             ORDER BY m.overall_score DESC
             LIMIT ?
-        """, (limit,)).fetchall()
+        """,
+            (limit,),
+        ).fetchall()
         results = []
         for row in rows:
             job = _row_to_job(row)
@@ -595,19 +644,30 @@ def get_top_matches(limit: int = 20, db_path: Path = DB_PATH) -> list[tuple[JobL
 
 # --- Applications ---
 
+
 def upsert_application(app: Application, db_path: Path = DB_PATH) -> None:
     """Insert or update an application."""
     conn = get_connection(db_path)
     try:
-        conn.execute("""
+        conn.execute(
+            """
             INSERT OR REPLACE INTO applications
             (id, job_id, company, role, status, match_score, applied_date, updated_date, notes, resume_version)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            app.id, app.job_id, app.company, app.role, app.status,
-            app.match_score, app.applied_date, app.updated_date,
-            app.notes, app.resume_version,
-        ))
+        """,
+            (
+                app.id,
+                app.job_id,
+                app.company,
+                app.role,
+                app.status,
+                app.match_score,
+                app.applied_date,
+                app.updated_date,
+                app.notes,
+                app.resume_version,
+            ),
+        )
         conn.commit()
     finally:
         conn.close()
@@ -623,13 +683,20 @@ def get_applications(status: str = "", db_path: Path = DB_PATH) -> list[Applicat
                 (status,),
             ).fetchall()
         else:
-            rows = conn.execute("SELECT * FROM applications ORDER BY updated_date DESC").fetchall()
+            rows = conn.execute(
+                "SELECT * FROM applications ORDER BY updated_date DESC"
+            ).fetchall()
         return [
             Application(
-                job_id=r["job_id"], company=r["company"], role=r["role"],
-                status=r["status"], match_score=r["match_score"],
-                applied_date=r["applied_date"], updated_date=r["updated_date"],
-                notes=r["notes"], resume_version=r["resume_version"],
+                job_id=r["job_id"],
+                company=r["company"],
+                role=r["role"],
+                status=r["status"],
+                match_score=r["match_score"],
+                applied_date=r["applied_date"],
+                updated_date=r["updated_date"],
+                notes=r["notes"],
+                resume_version=r["resume_version"],
             )
             for r in rows
         ]
@@ -637,7 +704,9 @@ def get_applications(status: str = "", db_path: Path = DB_PATH) -> list[Applicat
         conn.close()
 
 
-def update_application_status(app_id: str, status: str, db_path: Path = DB_PATH) -> bool:
+def update_application_status(
+    app_id: str, status: str, db_path: Path = DB_PATH
+) -> bool:
     """Update an application's status. Returns True if found."""
     conn = get_connection(db_path)
     try:
@@ -653,18 +722,27 @@ def update_application_status(app_id: str, status: str, db_path: Path = DB_PATH)
 
 # --- Companies ---
 
+
 def upsert_company(company: Company, db_path: Path = DB_PATH) -> None:
     """Insert or update a company."""
     conn = get_connection(db_path)
     try:
-        conn.execute("""
+        conn.execute(
+            """
             INSERT OR REPLACE INTO companies
             (name, website, industry, size, career_page, job_count, notes)
             VALUES (?, ?, ?, ?, ?, ?, ?)
-        """, (
-            company.name, company.website, company.industry,
-            company.size, company.career_page, company.job_count, company.notes,
-        ))
+        """,
+            (
+                company.name,
+                company.website,
+                company.industry,
+                company.size,
+                company.career_page,
+                company.job_count,
+                company.notes,
+            ),
+        )
         conn.commit()
     finally:
         conn.close()
@@ -677,9 +755,13 @@ def get_companies(db_path: Path = DB_PATH) -> list[Company]:
         rows = conn.execute("SELECT * FROM companies ORDER BY name").fetchall()
         return [
             Company(
-                name=r["name"], website=r["website"], industry=r["industry"],
-                size=r["size"], career_page=r["career_page"],
-                job_count=r["job_count"], notes=r["notes"],
+                name=r["name"],
+                website=r["website"],
+                industry=r["industry"],
+                size=r["size"],
+                career_page=r["career_page"],
+                job_count=r["job_count"],
+                notes=r["notes"],
             )
             for r in rows
         ]
@@ -694,7 +776,9 @@ def get_stats(db_path: Path = DB_PATH) -> dict:
         total_jobs = conn.execute("SELECT COUNT(*) FROM jobs").fetchone()[0]
         total_companies = conn.execute("SELECT COUNT(*) FROM companies").fetchone()[0]
         total_apps = conn.execute("SELECT COUNT(*) FROM applications").fetchone()[0]
-        avg_score = conn.execute("SELECT COALESCE(AVG(overall_score), 0) FROM match_results").fetchone()[0]
+        avg_score = conn.execute(
+            "SELECT COALESCE(AVG(overall_score), 0) FROM match_results"
+        ).fetchone()[0]
         top_sources = conn.execute(
             "SELECT source, COUNT(*) as cnt FROM jobs GROUP BY source ORDER BY cnt DESC"
         ).fetchall()
@@ -703,7 +787,9 @@ def get_stats(db_path: Path = DB_PATH) -> dict:
             "total_companies": total_companies,
             "total_applications": total_apps,
             "average_match_score": round(avg_score, 3),
-            "top_sources": [{"source": r["source"], "count": r["cnt"]} for r in top_sources],
+            "top_sources": [
+                {"source": r["source"], "count": r["cnt"]} for r in top_sources
+            ],
         }
     finally:
         conn.close()
@@ -711,17 +797,29 @@ def get_stats(db_path: Path = DB_PATH) -> dict:
 
 # --- Resumes ---
 
+
 def upsert_resume(resume: Resume, db_path: Path = DB_PATH) -> bool:
     """Insert or update a resume. Returns True if new."""
     conn = get_connection(db_path)
     try:
-        existing = conn.execute("SELECT id FROM resumes WHERE id = ?", (resume.id,)).fetchone()
-        conn.execute("""
+        existing = conn.execute(
+            "SELECT id FROM resumes WHERE id = ?", (resume.id,)
+        ).fetchone()
+        conn.execute(
+            """
             INSERT OR REPLACE INTO resumes
             (id, name, filename, raw_text, target_role, created_at)
             VALUES (?, ?, ?, ?, ?, ?)
-        """, (resume.id, resume.name, resume.filename, resume.raw_text,
-              resume.target_role, resume.created_at))
+        """,
+            (
+                resume.id,
+                resume.name,
+                resume.filename,
+                resume.raw_text,
+                resume.target_role,
+                resume.created_at,
+            ),
+        )
         conn.commit()
         return existing is None
     finally:
@@ -732,12 +830,17 @@ def get_resume(resume_id: str, db_path: Path = DB_PATH) -> Resume | None:
     """Get a resume by ID."""
     conn = get_connection(db_path)
     try:
-        row = conn.execute("SELECT * FROM resumes WHERE id = ?", (resume_id,)).fetchone()
+        row = conn.execute(
+            "SELECT * FROM resumes WHERE id = ?", (resume_id,)
+        ).fetchone()
         if not row:
             return None
         return Resume(
-            id=row["id"], name=row["name"], filename=row["filename"],
-            raw_text=row["raw_text"], target_role=row["target_role"],
+            id=row["id"],
+            name=row["name"],
+            filename=row["filename"],
+            raw_text=row["raw_text"],
+            target_role=row["target_role"],
             created_at=row["created_at"],
         )
     finally:
@@ -752,8 +855,13 @@ def get_all_resumes(db_path: Path = DB_PATH) -> list[Resume]:
             "SELECT id, name, filename, target_role, created_at FROM resumes ORDER BY created_at DESC"
         ).fetchall()
         return [
-            Resume(id=r["id"], name=r["name"], filename=r["filename"],
-                   target_role=r["target_role"], created_at=r["created_at"])
+            Resume(
+                id=r["id"],
+                name=r["name"],
+                filename=r["filename"],
+                target_role=r["target_role"],
+                created_at=r["created_at"],
+            )
             for r in rows
         ]
     finally:
@@ -788,16 +896,26 @@ def save_resume_analysis(
     """Save a resume analysis result."""
     conn = get_connection(db_path)
     try:
-        conn.execute("""
+        conn.execute(
+            """
             INSERT INTO resume_analyses
             (resume_id, ats_score, resume_quality_score, technical_strength_score,
              hiring_readiness_score, skills, strengths, weaknesses, missing_skills, suggestions)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            resume_id, ats_score, resume_quality_score, technical_strength_score,
-            hiring_readiness_score, json.dumps(skills), json.dumps(strengths),
-            json.dumps(weaknesses), json.dumps(missing_skills), json.dumps(suggestions),
-        ))
+        """,
+            (
+                resume_id,
+                ats_score,
+                resume_quality_score,
+                technical_strength_score,
+                hiring_readiness_score,
+                json.dumps(skills),
+                json.dumps(strengths),
+                json.dumps(weaknesses),
+                json.dumps(missing_skills),
+                json.dumps(suggestions),
+            ),
+        )
         conn.commit()
     finally:
         conn.close()
@@ -833,6 +951,7 @@ def get_resume_analyses(resume_id: str, db_path: Path = DB_PATH) -> list[dict]:
 
 
 # --- Verification Events ---
+
 
 def log_verification_event(
     entity_type: str,
@@ -936,16 +1055,34 @@ def get_latest_verification_status(
 
 # --- Uploaded Resumes ---
 
-def save_uploaded_resume(resume_id: str, filename: str, file_type: str, file_size: int,
-                         raw_text: str, extracted_data: dict, db_path: Path = DB_PATH) -> None:
+
+def save_uploaded_resume(
+    resume_id: str,
+    filename: str,
+    file_type: str,
+    file_size: int,
+    raw_text: str,
+    extracted_data: dict,
+    db_path: Path = DB_PATH,
+) -> None:
     """Save an uploaded resume."""
     conn = get_connection(db_path)
     try:
-        conn.execute("""
+        conn.execute(
+            """
             INSERT OR REPLACE INTO uploaded_resumes
             (id, filename, file_type, file_size, raw_text, extracted_data)
             VALUES (?, ?, ?, ?, ?, ?)
-        """, (resume_id, filename, file_type, file_size, raw_text, json.dumps(extracted_data)))
+        """,
+            (
+                resume_id,
+                filename,
+                file_type,
+                file_size,
+                raw_text,
+                json.dumps(extracted_data),
+            ),
+        )
         conn.commit()
     finally:
         conn.close()
@@ -955,7 +1092,9 @@ def get_uploaded_resume(resume_id: str, db_path: Path = DB_PATH) -> dict | None:
     """Get an uploaded resume."""
     conn = get_connection(db_path)
     try:
-        row = conn.execute("SELECT * FROM uploaded_resumes WHERE id = ?", (resume_id,)).fetchone()
+        row = conn.execute(
+            "SELECT * FROM uploaded_resumes WHERE id = ?", (resume_id,)
+        ).fetchone()
         if not row:
             return None
         return dict(row)
@@ -967,7 +1106,9 @@ def get_all_uploaded_resumes(db_path: Path = DB_PATH) -> list[dict]:
     """Get all uploaded resumes."""
     conn = get_connection(db_path)
     try:
-        rows = conn.execute("SELECT * FROM uploaded_resumes ORDER BY upload_date DESC").fetchall()
+        rows = conn.execute(
+            "SELECT * FROM uploaded_resumes ORDER BY upload_date DESC"
+        ).fetchall()
         return [dict(r) for r in rows]
     finally:
         conn.close()
@@ -986,16 +1127,28 @@ def delete_uploaded_resume(resume_id: str, db_path: Path = DB_PATH) -> bool:
 
 # --- Cover Letters ---
 
+
 def save_cover_letter(letter: CoverLetter, db_path: Path = DB_PATH) -> int:
     """Save a cover letter. Returns the inserted ID."""
     conn = get_connection(db_path)
     try:
-        cursor = conn.execute("""
+        cursor = conn.execute(
+            """
             INSERT INTO cover_letters
             (resume_id, job_id, company_name, role_title, job_description, letter_text, tone, word_count)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        """, (letter.resume_id, letter.job_id, letter.company_name, letter.role_title,
-              letter.job_description, letter.letter_text, letter.tone, letter.word_count))
+        """,
+            (
+                letter.resume_id,
+                letter.job_id,
+                letter.company_name,
+                letter.role_title,
+                letter.job_description,
+                letter.letter_text,
+                letter.tone,
+                letter.word_count,
+            ),
+        )
         conn.commit()
         return cursor.lastrowid
     finally:
@@ -1006,7 +1159,9 @@ def get_cover_letters(db_path: Path = DB_PATH) -> list[dict]:
     """Get all cover letters."""
     conn = get_connection(db_path)
     try:
-        rows = conn.execute("SELECT * FROM cover_letters ORDER BY created_at DESC").fetchall()
+        rows = conn.execute(
+            "SELECT * FROM cover_letters ORDER BY created_at DESC"
+        ).fetchall()
         return [dict(r) for r in rows]
     finally:
         conn.close()
@@ -1016,7 +1171,9 @@ def get_cover_letter(letter_id: int, db_path: Path = DB_PATH) -> dict | None:
     """Get a specific cover letter."""
     conn = get_connection(db_path)
     try:
-        row = conn.execute("SELECT * FROM cover_letters WHERE id = ?", (letter_id,)).fetchone()
+        row = conn.execute(
+            "SELECT * FROM cover_letters WHERE id = ?", (letter_id,)
+        ).fetchone()
         return dict(row) if row else None
     finally:
         conn.close()
@@ -1035,7 +1192,10 @@ def delete_cover_letter(letter_id: int, db_path: Path = DB_PATH) -> bool:
 
 # --- Application Notes ---
 
-def add_application_note(app_id: str, note_type: str, content: str, db_path: Path = DB_PATH) -> int:
+
+def add_application_note(
+    app_id: str, note_type: str, content: str, db_path: Path = DB_PATH
+) -> int:
     """Add a note to an application."""
     conn = get_connection(db_path)
     try:
@@ -1066,7 +1226,9 @@ def delete_application(app_id: str, db_path: Path = DB_PATH) -> bool:
     """Delete an application and its notes."""
     conn = get_connection(db_path)
     try:
-        conn.execute("DELETE FROM application_notes WHERE application_id = ?", (app_id,))
+        conn.execute(
+            "DELETE FROM application_notes WHERE application_id = ?", (app_id,)
+        )
         cur = conn.execute("DELETE FROM applications WHERE id = ?", (app_id,))
         conn.commit()
         return cur.rowcount > 0
@@ -1078,14 +1240,21 @@ def get_application(app_id: str, db_path: Path = DB_PATH) -> Application | None:
     """Get a specific application."""
     conn = get_connection(db_path)
     try:
-        row = conn.execute("SELECT * FROM applications WHERE id = ?", (app_id,)).fetchone()
+        row = conn.execute(
+            "SELECT * FROM applications WHERE id = ?", (app_id,)
+        ).fetchone()
         if not row:
             return None
         return Application(
-            job_id=row["job_id"], company=row["company"], role=row["role"],
-            status=row["status"], match_score=row["match_score"],
-            applied_date=row["applied_date"], updated_date=row["updated_date"],
-            notes=row["notes"], resume_version=row["resume_version"],
+            job_id=row["job_id"],
+            company=row["company"],
+            role=row["role"],
+            status=row["status"],
+            match_score=row["match_score"],
+            applied_date=row["applied_date"],
+            updated_date=row["updated_date"],
+            notes=row["notes"],
+            resume_version=row["resume_version"],
         )
     finally:
         conn.close()
@@ -1120,23 +1289,39 @@ def get_application_stats(db_path: Path = DB_PATH) -> dict:
 
 # --- Interview Questions ---
 
-def save_interview_questions(questions: list[InterviewQuestion], db_path: Path = DB_PATH) -> None:
+
+def save_interview_questions(
+    questions: list[InterviewQuestion], db_path: Path = DB_PATH
+) -> None:
     """Save interview questions."""
     conn = get_connection(db_path)
     try:
         for q in questions:
-            conn.execute("""
+            conn.execute(
+                """
                 INSERT INTO interview_questions
                 (job_id, resume_id, role_title, category, difficulty, question, sample_answer, tips)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            """, (q.job_id, q.resume_id, q.role_title, q.category, q.difficulty,
-                  q.question, q.sample_answer, q.tips))
+            """,
+                (
+                    q.job_id,
+                    q.resume_id,
+                    q.role_title,
+                    q.category,
+                    q.difficulty,
+                    q.question,
+                    q.sample_answer,
+                    q.tips,
+                ),
+            )
         conn.commit()
     finally:
         conn.close()
 
 
-def get_interview_questions(job_id: str = "", resume_id: str = "", db_path: Path = DB_PATH) -> list[dict]:
+def get_interview_questions(
+    job_id: str = "", resume_id: str = "", db_path: Path = DB_PATH
+) -> list[dict]:
     """Get interview questions, optionally filtered."""
     conn = get_connection(db_path)
     try:
@@ -1159,7 +1344,9 @@ def delete_interview_questions(question_id: int, db_path: Path = DB_PATH) -> boo
     """Delete interview questions by ID."""
     conn = get_connection(db_path)
     try:
-        cur = conn.execute("DELETE FROM interview_questions WHERE id = ?", (question_id,))
+        cur = conn.execute(
+            "DELETE FROM interview_questions WHERE id = ?", (question_id,)
+        )
         conn.commit()
         return cur.rowcount > 0
     finally:
@@ -1168,19 +1355,29 @@ def delete_interview_questions(question_id: int, db_path: Path = DB_PATH) -> boo
 
 # --- Skill Gap Reports ---
 
+
 def save_skill_gap_report(report: SkillGapReport, db_path: Path = DB_PATH) -> int:
     """Save a skill gap report. Returns the inserted ID."""
     conn = get_connection(db_path)
     try:
-        cursor = conn.execute("""
+        cursor = conn.execute(
+            """
             INSERT INTO skill_gap_reports
             (resume_id, job_id, matched_skills, missing_skills, extra_skills,
              match_percentage, learning_areas, priority_ranking)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        """, (report.resume_id, report.job_id,
-              json.dumps(report.matched_skills), json.dumps(report.missing_skills),
-              json.dumps(report.extra_skills), report.match_percentage,
-              json.dumps(report.learning_areas), json.dumps(report.priority_ranking)))
+        """,
+            (
+                report.resume_id,
+                report.job_id,
+                json.dumps(report.matched_skills),
+                json.dumps(report.missing_skills),
+                json.dumps(report.extra_skills),
+                report.match_percentage,
+                json.dumps(report.learning_areas),
+                json.dumps(report.priority_ranking),
+            ),
+        )
         conn.commit()
         return cursor.lastrowid
     finally:
@@ -1191,7 +1388,9 @@ def get_skill_gap_reports(db_path: Path = DB_PATH) -> list[dict]:
     """Get all skill gap reports."""
     conn = get_connection(db_path)
     try:
-        rows = conn.execute("SELECT * FROM skill_gap_reports ORDER BY analyzed_at DESC").fetchall()
+        rows = conn.execute(
+            "SELECT * FROM skill_gap_reports ORDER BY analyzed_at DESC"
+        ).fetchall()
         return [dict(r) for r in rows]
     finally:
         conn.close()
@@ -1201,7 +1400,9 @@ def get_skill_gap_report(report_id: int, db_path: Path = DB_PATH) -> dict | None
     """Get a specific skill gap report."""
     conn = get_connection(db_path)
     try:
-        row = conn.execute("SELECT * FROM skill_gap_reports WHERE id = ?", (report_id,)).fetchone()
+        row = conn.execute(
+            "SELECT * FROM skill_gap_reports WHERE id = ?", (report_id,)
+        ).fetchone()
         return dict(row) if row else None
     finally:
         conn.close()
@@ -1209,18 +1410,29 @@ def get_skill_gap_report(report_id: int, db_path: Path = DB_PATH) -> dict | None
 
 # --- LinkedIn Reports ---
 
+
 def save_linkedin_report(report: LinkedInReport, db_path: Path = DB_PATH) -> int:
     """Save a LinkedIn report. Returns the inserted ID."""
     conn = get_connection(db_path)
     try:
-        cursor = conn.execute("""
+        cursor = conn.execute(
+            """
             INSERT INTO linkedin_reports
             (headline, about, skills_raw, experience_raw, suggestions, missing_keywords,
              visibility_score, strength_score)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        """, (report.headline, report.about, report.skills_raw, report.experience_raw,
-              json.dumps(report.suggestions), json.dumps(report.missing_keywords),
-              report.visibility_score, report.strength_score))
+        """,
+            (
+                report.headline,
+                report.about,
+                report.skills_raw,
+                report.experience_raw,
+                json.dumps(report.suggestions),
+                json.dumps(report.missing_keywords),
+                report.visibility_score,
+                report.strength_score,
+            ),
+        )
         conn.commit()
         return cursor.lastrowid
     finally:
@@ -1231,7 +1443,9 @@ def get_linkedin_reports(db_path: Path = DB_PATH) -> list[dict]:
     """Get all LinkedIn reports."""
     conn = get_connection(db_path)
     try:
-        rows = conn.execute("SELECT * FROM linkedin_reports ORDER BY analyzed_at DESC").fetchall()
+        rows = conn.execute(
+            "SELECT * FROM linkedin_reports ORDER BY analyzed_at DESC"
+        ).fetchall()
         return [dict(r) for r in rows]
     finally:
         conn.close()
@@ -1241,7 +1455,9 @@ def get_linkedin_report(report_id: int, db_path: Path = DB_PATH) -> dict | None:
     """Get a specific LinkedIn report."""
     conn = get_connection(db_path)
     try:
-        row = conn.execute("SELECT * FROM linkedin_reports WHERE id = ?", (report_id,)).fetchone()
+        row = conn.execute(
+            "SELECT * FROM linkedin_reports WHERE id = ?", (report_id,)
+        ).fetchone()
         return dict(row) if row else None
     finally:
         conn.close()
@@ -1249,18 +1465,29 @@ def get_linkedin_report(report_id: int, db_path: Path = DB_PATH) -> dict | None:
 
 # --- Tailored Resumes ---
 
+
 def save_tailored_resume(resume: TailoredResume, db_path: Path = DB_PATH) -> int:
     """Save a tailored resume. Returns the inserted ID."""
     conn = get_connection(db_path)
     try:
-        cursor = conn.execute("""
+        cursor = conn.execute(
+            """
             INSERT INTO tailored_resumes
             (original_resume_id, job_id, original_text, tailored_text,
              original_score, tailored_score, improvement_pct, keywords_added)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        """, (resume.original_resume_id, resume.job_id, resume.original_text,
-              resume.tailored_text, resume.original_score, resume.tailored_score,
-              resume.improvement_pct, json.dumps(resume.keywords_added)))
+        """,
+            (
+                resume.original_resume_id,
+                resume.job_id,
+                resume.original_text,
+                resume.tailored_text,
+                resume.original_score,
+                resume.tailored_score,
+                resume.improvement_pct,
+                json.dumps(resume.keywords_added),
+            ),
+        )
         conn.commit()
         return cursor.lastrowid
     finally:
@@ -1271,7 +1498,9 @@ def get_tailored_resumes(db_path: Path = DB_PATH) -> list[dict]:
     """Get all tailored resumes."""
     conn = get_connection(db_path)
     try:
-        rows = conn.execute("SELECT * FROM tailored_resumes ORDER BY created_at DESC").fetchall()
+        rows = conn.execute(
+            "SELECT * FROM tailored_resumes ORDER BY created_at DESC"
+        ).fetchall()
         return [dict(r) for r in rows]
     finally:
         conn.close()
@@ -1281,7 +1510,9 @@ def get_tailored_resume(resume_id: int, db_path: Path = DB_PATH) -> dict | None:
     """Get a specific tailored resume."""
     conn = get_connection(db_path)
     try:
-        row = conn.execute("SELECT * FROM tailored_resumes WHERE id = ?", (resume_id,)).fetchone()
+        row = conn.execute(
+            "SELECT * FROM tailored_resumes WHERE id = ?", (resume_id,)
+        ).fetchone()
         return dict(row) if row else None
     finally:
         conn.close()
@@ -1300,16 +1531,26 @@ def delete_tailored_resume(resume_id: int, db_path: Path = DB_PATH) -> bool:
 
 # --- Alert Subscriptions ---
 
+
 def save_alert_subscription(alert: AlertSubscription, db_path: Path = DB_PATH) -> int:
     """Save an alert subscription. Returns the inserted ID."""
     conn = get_connection(db_path)
     try:
-        cursor = conn.execute("""
+        cursor = conn.execute(
+            """
             INSERT INTO alert_subscriptions
             (role, location, remote_only, experience_level, frequency, is_active)
             VALUES (?, ?, ?, ?, ?, ?)
-        """, (alert.role, alert.location, alert.remote_only, alert.experience_level,
-              alert.frequency, alert.is_active))
+        """,
+            (
+                alert.role,
+                alert.location,
+                alert.remote_only,
+                alert.experience_level,
+                alert.frequency,
+                alert.is_active,
+            ),
+        )
         conn.commit()
         return cursor.lastrowid
     finally:
@@ -1320,7 +1561,9 @@ def get_alert_subscriptions(db_path: Path = DB_PATH) -> list[dict]:
     """Get all alert subscriptions."""
     conn = get_connection(db_path)
     try:
-        rows = conn.execute("SELECT * FROM alert_subscriptions ORDER BY created_at DESC").fetchall()
+        rows = conn.execute(
+            "SELECT * FROM alert_subscriptions ORDER BY created_at DESC"
+        ).fetchall()
         return [dict(r) for r in rows]
     finally:
         conn.close()
@@ -1338,13 +1581,17 @@ def get_active_alerts(db_path: Path = DB_PATH) -> list[dict]:
         conn.close()
 
 
-def update_alert_subscription(alert_id: int, updates: dict, db_path: Path = DB_PATH) -> bool:
+def update_alert_subscription(
+    alert_id: int, updates: dict, db_path: Path = DB_PATH
+) -> bool:
     """Update an alert subscription."""
     conn = get_connection(db_path)
     try:
         set_clause = ", ".join(f"{k} = ?" for k in updates)
         values = list(updates.values()) + [alert_id]
-        cur = conn.execute(f"UPDATE alert_subscriptions SET {set_clause} WHERE id = ?", values)
+        cur = conn.execute(
+            f"UPDATE alert_subscriptions SET {set_clause} WHERE id = ?", values
+        )
         conn.commit()
         return cur.rowcount > 0
     finally:
@@ -1364,21 +1611,33 @@ def delete_alert_subscription(alert_id: int, db_path: Path = DB_PATH) -> bool:
 
 # --- Dashboard Statistics ---
 
+
 def save_dashboard_stats(stats: DashboardStats, db_path: Path = DB_PATH) -> None:
     """Save dashboard statistics."""
     conn = get_connection(db_path)
     try:
-        conn.execute("""
+        conn.execute(
+            """
             INSERT INTO dashboard_statistics
             (period, total_jobs, total_applications, total_interviews, total_offers,
              total_rejections, avg_match_score, avg_ats_score, application_timeline,
              skill_coverage, match_trends)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (stats.period, stats.total_jobs, stats.total_applications,
-              stats.total_interviews, stats.total_offers, stats.total_rejections,
-              stats.avg_match_score, stats.avg_ats_score,
-              json.dumps(stats.application_timeline), json.dumps(stats.skill_coverage),
-              json.dumps(stats.match_trends)))
+        """,
+            (
+                stats.period,
+                stats.total_jobs,
+                stats.total_applications,
+                stats.total_interviews,
+                stats.total_offers,
+                stats.total_rejections,
+                stats.avg_match_score,
+                stats.avg_ats_score,
+                json.dumps(stats.application_timeline),
+                json.dumps(stats.skill_coverage),
+                json.dumps(stats.match_trends),
+            ),
+        )
         conn.commit()
     finally:
         conn.close()
@@ -1398,17 +1657,24 @@ def get_latest_dashboard_stats(db_path: Path = DB_PATH) -> dict | None:
 
 # --- Job Notifications ---
 
+
 def create_job_notification(
-    job_id: str, notification_type: str, message: str,
-    match_score: float = 0, db_path: Path = DB_PATH
+    job_id: str,
+    notification_type: str,
+    message: str,
+    match_score: float = 0,
+    db_path: Path = DB_PATH,
 ) -> int:
     """Create a job notification. Returns the notification ID."""
     conn = get_connection(db_path)
     try:
-        cursor = conn.execute("""
+        cursor = conn.execute(
+            """
             INSERT INTO job_notifications (job_id, notification_type, message, match_score)
             VALUES (?, ?, ?, ?)
-        """, (job_id, notification_type, message, match_score))
+        """,
+            (job_id, notification_type, message, match_score),
+        )
         conn.commit()
         return cursor.lastrowid
     finally:
@@ -1490,19 +1756,27 @@ def has_been_notified(job_id: str, db_path: Path = DB_PATH) -> bool:
 
 # --- Job Scan History ---
 
+
 def save_scan_history(
-    source: str, query: str, location: str,
-    jobs_found: int, new_jobs_found: int,
-    duration_seconds: float = 0, db_path: Path = DB_PATH
+    source: str,
+    query: str,
+    location: str,
+    jobs_found: int,
+    new_jobs_found: int,
+    duration_seconds: float = 0,
+    db_path: Path = DB_PATH,
 ) -> int:
     """Save a scan history record. Returns the ID."""
     conn = get_connection(db_path)
     try:
-        cursor = conn.execute("""
+        cursor = conn.execute(
+            """
             INSERT INTO job_scan_history
             (source, query, location, jobs_found, new_jobs_found, duration_seconds)
             VALUES (?, ?, ?, ?, ?, ?)
-        """, (source, query, location, jobs_found, new_jobs_found, duration_seconds))
+        """,
+            (source, query, location, jobs_found, new_jobs_found, duration_seconds),
+        )
         conn.commit()
         return cursor.lastrowid
     finally:
@@ -1526,7 +1800,9 @@ def get_scan_stats(db_path: Path = DB_PATH) -> dict:
     """Get aggregate scan statistics."""
     conn = get_connection(db_path)
     try:
-        total_scans = conn.execute("SELECT COUNT(*) FROM job_scan_history").fetchone()[0]
+        total_scans = conn.execute("SELECT COUNT(*) FROM job_scan_history").fetchone()[
+            0
+        ]
         total_jobs_found = conn.execute(
             "SELECT COALESCE(SUM(jobs_found), 0) FROM job_scan_history"
         ).fetchone()[0]
@@ -1551,6 +1827,7 @@ def get_scan_stats(db_path: Path = DB_PATH) -> dict:
 
 
 # --- New Job Detection ---
+
 
 def compute_job_hash(company: str, title: str, url: str) -> str:
     """Compute a hash for duplicate detection."""
@@ -1584,7 +1861,9 @@ def get_new_jobs(jobs: list[JobListing], db_path: Path = DB_PATH) -> list[JobLis
         conn.close()
 
 
-def update_job_active_status(job_id: str, is_active: bool, db_path: Path = DB_PATH) -> bool:
+def update_job_active_status(
+    job_id: str, is_active: bool, db_path: Path = DB_PATH
+) -> bool:
     """Update a job's active status."""
     conn = get_connection(db_path)
     try:
@@ -1632,14 +1911,17 @@ def get_top_hiring_companies(limit: int = 10, db_path: Path = DB_PATH) -> list[d
     """Get companies with most job listings."""
     conn = get_connection(db_path)
     try:
-        rows = conn.execute("""
+        rows = conn.execute(
+            """
             SELECT company, COUNT(*) as job_count
             FROM jobs
             WHERE is_active = 1
             GROUP BY company
             ORDER BY job_count DESC
             LIMIT ?
-        """, (limit,)).fetchall()
+        """,
+            (limit,),
+        ).fetchall()
         return [dict(r) for r in rows]
     finally:
         conn.close()
@@ -1684,7 +1966,8 @@ def get_recent_high_match_jobs(limit: int = 10, db_path: Path = DB_PATH) -> list
     """Get recent jobs with high match scores."""
     conn = get_connection(db_path)
     try:
-        rows = conn.execute("""
+        rows = conn.execute(
+            """
             SELECT j.id, j.company, j.title, j.location, j.url, j.source,
                    j.posted_date, j.discovered_at,
                    m.overall_score, m.skills_score, m.strengths, m.missing_skills
@@ -1693,23 +1976,27 @@ def get_recent_high_match_jobs(limit: int = 10, db_path: Path = DB_PATH) -> list
             WHERE j.is_active = 1
             ORDER BY m.overall_score DESC, j.discovered_at DESC
             LIMIT ?
-        """, (limit,)).fetchall()
+        """,
+            (limit,),
+        ).fetchall()
         results = []
         for r in rows:
-            results.append({
-                "id": r["id"],
-                "company": r["company"],
-                "title": r["title"],
-                "location": r["location"],
-                "url": r["url"],
-                "source": r["source"],
-                "posted_date": r["posted_date"],
-                "discovered_at": r["discovered_at"],
-                "match_score": r["overall_score"],
-                "skills_score": r["skills_score"],
-                "strengths": json.loads(r["strengths"] or "[]"),
-                "missing_skills": json.loads(r["missing_skills"] or "[]"),
-            })
+            results.append(
+                {
+                    "id": r["id"],
+                    "company": r["company"],
+                    "title": r["title"],
+                    "location": r["location"],
+                    "url": r["url"],
+                    "source": r["source"],
+                    "posted_date": r["posted_date"],
+                    "discovered_at": r["discovered_at"],
+                    "match_score": r["overall_score"],
+                    "skills_score": r["skills_score"],
+                    "strengths": json.loads(r["strengths"] or "[]"),
+                    "missing_skills": json.loads(r["missing_skills"] or "[]"),
+                }
+            )
         return results
     finally:
         conn.close()
@@ -1717,13 +2004,16 @@ def get_recent_high_match_jobs(limit: int = 10, db_path: Path = DB_PATH) -> list
 
 # --- User Management ---
 
-def create_user(email: str, password_hash: str, name: str = "", db_path: Path = DB_PATH) -> int:
+
+def create_user(
+    email: str, password_hash: str, name: str = "", db_path: Path = DB_PATH
+) -> int:
     """Create a new user. Returns the user ID."""
     conn = get_connection(db_path)
     try:
         cursor = conn.execute(
             "INSERT INTO users (email, password_hash, name) VALUES (?, ?, ?)",
-            (email, password_hash, name)
+            (email, password_hash, name),
         )
         conn.commit()
         return cursor.lastrowid
@@ -1769,33 +2059,40 @@ def update_user(user_id: int, updates: dict, db_path: Path = DB_PATH) -> bool:
         conn.close()
 
 
-def log_audit(user_id: int, action: str, resource: str = None,
-              details: dict = None, ip_address: str = None, db_path: Path = DB_PATH):
+def log_audit(
+    user_id: int,
+    action: str,
+    resource: str = None,
+    details: dict = None,
+    ip_address: str = None,
+    db_path: Path = DB_PATH,
+):
     """Log an audit event."""
     conn = get_connection(db_path)
     try:
         conn.execute(
             "INSERT INTO audit_logs (user_id, action, resource, details, ip_address) VALUES (?, ?, ?, ?, ?)",
-            (user_id, action, resource, json.dumps(details or {}), ip_address)
+            (user_id, action, resource, json.dumps(details or {}), ip_address),
         )
         conn.commit()
     finally:
         conn.close()
 
 
-def get_audit_logs(user_id: int = None, limit: int = 100, db_path: Path = DB_PATH) -> list[dict]:
+def get_audit_logs(
+    user_id: int = None, limit: int = 100, db_path: Path = DB_PATH
+) -> list[dict]:
     """Get audit logs, optionally filtered by user."""
     conn = get_connection(db_path)
     try:
         if user_id:
             rows = conn.execute(
                 "SELECT * FROM audit_logs WHERE user_id = ? ORDER BY created_at DESC LIMIT ?",
-                (user_id, limit)
+                (user_id, limit),
             ).fetchall()
         else:
             rows = conn.execute(
-                "SELECT * FROM audit_logs ORDER BY created_at DESC LIMIT ?",
-                (limit,)
+                "SELECT * FROM audit_logs ORDER BY created_at DESC LIMIT ?", (limit,)
             ).fetchall()
         return [dict(r) for r in rows]
     finally:
@@ -1807,7 +2104,9 @@ def get_user_stats(db_path: Path = DB_PATH) -> dict:
     conn = get_connection(db_path)
     try:
         total_users = conn.execute("SELECT COUNT(*) FROM users").fetchone()[0]
-        active_users = conn.execute("SELECT COUNT(*) FROM users WHERE is_active = 1").fetchone()[0]
+        active_users = conn.execute(
+            "SELECT COUNT(*) FROM users WHERE is_active = 1"
+        ).fetchone()[0]
         recent_users = conn.execute(
             "SELECT COUNT(*) FROM users WHERE created_at >= DATE('now', '-30 days')"
         ).fetchone()[0]
@@ -1822,18 +2121,36 @@ def get_user_stats(db_path: Path = DB_PATH) -> dict:
 
 # --- Career Roadmaps ---
 
-def save_roadmap(user_id: int, goal_role: str, goal_company: str,
-                 current_skills: list, missing_skills: list,
-                 roadmap_data: list, estimated_weeks: int, db_path: Path = DB_PATH) -> int:
+
+def save_roadmap(
+    user_id: int,
+    goal_role: str,
+    goal_company: str,
+    current_skills: list,
+    missing_skills: list,
+    roadmap_data: list,
+    estimated_weeks: int,
+    db_path: Path = DB_PATH,
+) -> int:
     """Save a career roadmap."""
     conn = get_connection(db_path)
     try:
-        cursor = conn.execute("""
+        cursor = conn.execute(
+            """
             INSERT INTO career_roadmaps
             (user_id, goal_role, goal_company, current_skills, missing_skills, roadmap_data, estimated_duration_weeks)
             VALUES (?, ?, ?, ?, ?, ?, ?)
-        """, (user_id, goal_role, goal_company, json.dumps(current_skills),
-              json.dumps(missing_skills), json.dumps(roadmap_data), estimated_weeks))
+        """,
+            (
+                user_id,
+                goal_role,
+                goal_company,
+                json.dumps(current_skills),
+                json.dumps(missing_skills),
+                json.dumps(roadmap_data),
+                estimated_weeks,
+            ),
+        )
         conn.commit()
         return cursor.lastrowid
     finally:
@@ -1846,20 +2163,22 @@ def get_roadmaps(user_id: int, db_path: Path = DB_PATH) -> list[dict]:
     try:
         rows = conn.execute(
             "SELECT * FROM career_roadmaps WHERE user_id = ? ORDER BY created_at DESC",
-            (user_id,)
+            (user_id,),
         ).fetchall()
         return [dict(r) for r in rows]
     finally:
         conn.close()
 
 
-def update_roadmap_status(roadmap_id: int, status: str, db_path: Path = DB_PATH) -> bool:
+def update_roadmap_status(
+    roadmap_id: int, status: str, db_path: Path = DB_PATH
+) -> bool:
     """Update roadmap status."""
     conn = get_connection(db_path)
     try:
         cur = conn.execute(
             "UPDATE career_roadmaps SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
-            (status, roadmap_id)
+            (status, roadmap_id),
         )
         conn.commit()
         return cur.rowcount > 0
@@ -1869,20 +2188,41 @@ def update_roadmap_status(roadmap_id: int, status: str, db_path: Path = DB_PATH)
 
 # --- Resume Versions ---
 
-def save_resume_version(user_id: int, name: str, version_number: int,
-                        original_resume_id: str, raw_text: str,
-                        ats_score: float, match_rate: float,
-                        skills: list, notes: str = "", db_path: Path = DB_PATH) -> int:
+
+def save_resume_version(
+    user_id: int,
+    name: str,
+    version_number: int,
+    original_resume_id: str,
+    raw_text: str,
+    ats_score: float,
+    match_rate: float,
+    skills: list,
+    notes: str = "",
+    db_path: Path = DB_PATH,
+) -> int:
     """Save a resume version."""
     conn = get_connection(db_path)
     try:
-        cursor = conn.execute("""
+        cursor = conn.execute(
+            """
             INSERT INTO resume_versions
             (user_id, name, version_number, original_resume_id, raw_text,
              ats_score, match_rate, skills, notes)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (user_id, name, version_number, original_resume_id, raw_text,
-              ats_score, match_rate, json.dumps(skills), notes))
+        """,
+            (
+                user_id,
+                name,
+                version_number,
+                original_resume_id,
+                raw_text,
+                ats_score,
+                match_rate,
+                json.dumps(skills),
+                notes,
+            ),
+        )
         conn.commit()
         return cursor.lastrowid
     finally:
@@ -1895,7 +2235,7 @@ def get_resume_versions(user_id: int, db_path: Path = DB_PATH) -> list[dict]:
     try:
         rows = conn.execute(
             "SELECT * FROM resume_versions WHERE user_id = ? ORDER BY version_number DESC",
-            (user_id,)
+            (user_id,),
         ).fetchall()
         return [dict(r) for r in rows]
     finally:
@@ -1915,19 +2255,40 @@ def delete_resume_version(version_id: int, db_path: Path = DB_PATH) -> bool:
 
 # --- Company Interviews ---
 
-def save_company_interview(company: str, role: str, difficulty: int,
-                           rounds: list, questions: list,
-                           experience_text: str, tips: str,
-                           salary_range: str, user_id: int, db_path: Path = DB_PATH) -> int:
+
+def save_company_interview(
+    company: str,
+    role: str,
+    difficulty: int,
+    rounds: list,
+    questions: list,
+    experience_text: str,
+    tips: str,
+    salary_range: str,
+    user_id: int,
+    db_path: Path = DB_PATH,
+) -> int:
     """Save a company interview experience."""
     conn = get_connection(db_path)
     try:
-        cursor = conn.execute("""
+        cursor = conn.execute(
+            """
             INSERT INTO company_interviews
             (company, role, difficulty, rounds, questions, experience_text, tips, salary_range, user_id)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (company, role, difficulty, json.dumps(rounds), json.dumps(questions),
-              experience_text, tips, salary_range, user_id))
+        """,
+            (
+                company,
+                role,
+                difficulty,
+                json.dumps(rounds),
+                json.dumps(questions),
+                experience_text,
+                tips,
+                salary_range,
+                user_id,
+            ),
+        )
         conn.commit()
         return cursor.lastrowid
     finally:
@@ -1941,7 +2302,7 @@ def get_company_interviews(company: str = None, db_path: Path = DB_PATH) -> list
         if company:
             rows = conn.execute(
                 "SELECT * FROM company_interviews WHERE company = ? ORDER BY created_at DESC",
-                (company,)
+                (company,),
             ).fetchall()
         else:
             rows = conn.execute(
@@ -1954,28 +2315,52 @@ def get_company_interviews(company: str = None, db_path: Path = DB_PATH) -> list
 
 # --- Salary Estimates ---
 
-def save_salary_estimate(role: str, company: str, location: str,
-                         experience_level: str, skills: list,
-                         estimated_min: int, estimated_max: int,
-                         currency: str, confidence: float,
-                         data_source: str, db_path: Path = DB_PATH) -> int:
+
+def save_salary_estimate(
+    role: str,
+    company: str,
+    location: str,
+    experience_level: str,
+    skills: list,
+    estimated_min: int,
+    estimated_max: int,
+    currency: str,
+    confidence: float,
+    data_source: str,
+    db_path: Path = DB_PATH,
+) -> int:
     """Save a salary estimate."""
     conn = get_connection(db_path)
     try:
-        cursor = conn.execute("""
+        cursor = conn.execute(
+            """
             INSERT INTO salary_estimates
             (role, company, location, experience_level, skills,
              estimated_min, estimated_max, currency, confidence_score, data_source)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (role, company, location, experience_level, json.dumps(skills),
-              estimated_min, estimated_max, currency, confidence, data_source))
+        """,
+            (
+                role,
+                company,
+                location,
+                experience_level,
+                json.dumps(skills),
+                estimated_min,
+                estimated_max,
+                currency,
+                confidence,
+                data_source,
+            ),
+        )
         conn.commit()
         return cursor.lastrowid
     finally:
         conn.close()
 
 
-def get_salary_estimates(role: str = None, company: str = None, db_path: Path = DB_PATH) -> list[dict]:
+def get_salary_estimates(
+    role: str = None, company: str = None, db_path: Path = DB_PATH
+) -> list[dict]:
     """Get salary estimates."""
     conn = get_connection(db_path)
     try:
@@ -1996,28 +2381,39 @@ def get_salary_estimates(role: str = None, company: str = None, db_path: Path = 
 
 # --- Career Coach ---
 
-def save_coach_conversation(user_id: int, question: str, answer: str,
-                            context: dict = None, db_path: Path = DB_PATH) -> int:
+
+def save_coach_conversation(
+    user_id: int,
+    question: str,
+    answer: str,
+    context: dict = None,
+    db_path: Path = DB_PATH,
+) -> int:
     """Save a career coach conversation."""
     conn = get_connection(db_path)
     try:
-        cursor = conn.execute("""
+        cursor = conn.execute(
+            """
             INSERT INTO career_coach_conversations (user_id, question, answer, context)
             VALUES (?, ?, ?, ?)
-        """, (user_id, question, answer, json.dumps(context or {})))
+        """,
+            (user_id, question, answer, json.dumps(context or {})),
+        )
         conn.commit()
         return cursor.lastrowid
     finally:
         conn.close()
 
 
-def get_coach_conversations(user_id: int, limit: int = 50, db_path: Path = DB_PATH) -> list[dict]:
+def get_coach_conversations(
+    user_id: int, limit: int = 50, db_path: Path = DB_PATH
+) -> list[dict]:
     """Get career coach conversations."""
     conn = get_connection(db_path)
     try:
         rows = conn.execute(
             "SELECT * FROM career_coach_conversations WHERE user_id = ? ORDER BY created_at DESC LIMIT ?",
-            (user_id, limit)
+            (user_id, limit),
         ).fetchall()
         return [dict(r) for r in rows]
     finally:

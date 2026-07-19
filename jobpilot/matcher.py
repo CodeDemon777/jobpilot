@@ -22,14 +22,18 @@ def compute_match(profile: UserProfile, job: JobListing) -> MatchResult:
         + location_score * WEIGHTS["location"]
     )
 
-    strengths, weaknesses, missing = _analyze(profile, job, {
-        "skills": skills_score,
-        "experience": experience_score,
-        "relevance": relevance_score,
-        "education": education_score,
-        "role": role_score,
-        "location": location_score,
-    })
+    strengths, weaknesses, missing = _analyze(
+        profile,
+        job,
+        {
+            "skills": skills_score,
+            "experience": experience_score,
+            "relevance": relevance_score,
+            "education": education_score,
+            "role": role_score,
+            "location": location_score,
+        },
+    )
 
     return MatchResult(
         job_id=job.id,
@@ -98,7 +102,16 @@ def _education_score(profile: UserProfile, job: JobListing) -> float:
     edu_lower = job.education.lower()
     user_edus = [e.get("degree", "").lower() for e in profile.education]
 
-    degree_hierarchy = {"phd": 4, "doctorate": 4, "master": 3, "mba": 3, "bachelor": 2, "bs": 2, "ba": 2, "associate": 1}
+    degree_hierarchy = {
+        "phd": 4,
+        "doctorate": 4,
+        "master": 3,
+        "mba": 3,
+        "bachelor": 2,
+        "bs": 2,
+        "ba": 2,
+        "associate": 1,
+    }
 
     def get_level(degree_str: str) -> int:
         for key, val in degree_hierarchy.items():

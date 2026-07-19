@@ -14,27 +14,46 @@ from jobpilot import database as db
 from jobpilot.profile import load_profile, save_profile
 from jobpilot.matcher import compute_match
 from jobpilot.models import (
-    UserProfile, Application, Company, Resume,
-    CoverLetter, InterviewQuestion, SkillGapReport, LinkedInReport,
-    TailoredResume, AlertSubscription, DashboardStats,
+    UserProfile,
+    Application,
+    Company,
+    Resume,
+    CoverLetter,
+    InterviewQuestion,
+    SkillGapReport,
+    LinkedInReport,
+    TailoredResume,
+    AlertSubscription,
+    DashboardStats,
 )
 from jobpilot.config import DATA_DIR
 from jobpilot.resume_analyzer import analyze_resume
 from jobpilot.auth import (
-    UserCreate, UserLogin, UserResponse, Token, TokenData,
-    get_password_hash, authenticate_user, register_user,
-    create_access_token, create_refresh_token, get_current_user,
+    UserCreate,
+    UserLogin,
+    UserResponse,
+    Token,
+    TokenData,
+    get_password_hash,
+    authenticate_user,
+    register_user,
+    create_access_token,
+    create_refresh_token,
+    get_current_user,
     refresh_access_token,
 )
 from jobpilot.security import validate_email, validate_password
 from jobpilot.security import limiter, setup_cors, sanitize_input, get_client_ip
 
-app = FastAPI(title="JobPilot", version="0.3.0", description="AI-powered career assistant")
+app = FastAPI(
+    title="JobPilot", version="0.3.0", description="AI-powered career assistant"
+)
 
 
 # ============================================================================
 # HEALTH CHECK ENDPOINTS
 # ============================================================================
+
 
 @app.get("/health")
 async def health_check():
@@ -79,6 +98,7 @@ async def metrics():
     except Exception:
         return {"error": "Failed to fetch metrics"}
 
+
 # Setup security middleware
 setup_cors(app)
 app.state.limiter = limiter
@@ -89,6 +109,7 @@ app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
 
 # --- Pydantic models for API ---
+
 
 class ProfileUpdate(BaseModel):
     name: str | None = None
@@ -143,6 +164,7 @@ class ResumeAnalyzeRequest(BaseModel):
 
 # --- Authentication Routes ---
 
+
 @app.post("/api/auth/register", response_model=UserResponse)
 async def register(user: UserCreate):
     """Register a new user."""
@@ -182,7 +204,9 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
 
     # Create tokens
     access_token = create_access_token(data={"sub": user["id"], "email": user["email"]})
-    refresh_token = create_refresh_token(data={"sub": user["id"], "email": user["email"]})
+    refresh_token = create_refresh_token(
+        data={"sub": user["id"], "email": user["email"]}
+    )
 
     # Log audit event
     db.log_audit(user["id"], "login", "user", {"email": user["email"]})
@@ -242,6 +266,7 @@ async def change_password(
         raise HTTPException(status_code=404, detail="User not found")
 
     from jobpilot.auth import verify_password, get_password_hash
+
     if not verify_password(old_password, user["password_hash"]):
         raise HTTPException(status_code=400, detail="Incorrect password")
 
@@ -271,6 +296,7 @@ async def get_audit_logs(
 
 
 # --- Admin Routes ---
+
 
 @app.get("/api/admin/users")
 async def admin_list_users(
@@ -302,7 +328,7 @@ async def admin_stats(current_user: TokenData = Depends(get_current_user)):
 
 class VerificationRequest(BaseModel):
     entity_type: str  # 'profile' or 'resume'
-    entity_id: str    # 'profile' for profile, resume_id for resume
+    entity_id: str  # 'profile' for profile, resume_id for resume
 
 
 class VerificationConfirmRequest(BaseModel):
@@ -318,6 +344,7 @@ class VerificationDeclineRequest(BaseModel):
 
 # --- Feature 2: Resume Suggestions ---
 
+
 class ResumeSuggestionsRequest(BaseModel):
     resume_id: str = ""
     resume_text: str = ""
@@ -325,6 +352,7 @@ class ResumeSuggestionsRequest(BaseModel):
 
 
 # --- Feature 3: Cover Letter ---
+
 
 class CoverLetterRequest(BaseModel):
     resume_id: str = ""
@@ -339,11 +367,13 @@ class CoverLetterRequest(BaseModel):
 
 # --- Job Import ---
 
+
 class JobImportRequest(BaseModel):
     url: str
 
 
 # --- Feature 5: Interview Prep ---
+
 
 class InterviewRequest(BaseModel):
     job_id: str = ""
@@ -357,6 +387,7 @@ class InterviewRequest(BaseModel):
 
 # --- Feature 6: Skill Gap ---
 
+
 class SkillGapRequest(BaseModel):
     resume_id: str = ""
     resume_text: str = ""
@@ -368,6 +399,7 @@ class SkillGapRequest(BaseModel):
 
 # --- Feature 7: LinkedIn ---
 
+
 class LinkedInRequest(BaseModel):
     headline: str = ""
     about: str = ""
@@ -376,6 +408,7 @@ class LinkedInRequest(BaseModel):
 
 
 # --- Feature 8: Resume Tailoring ---
+
 
 class ResumeTailorRequest(BaseModel):
     resume_id: str = ""
@@ -386,6 +419,7 @@ class ResumeTailorRequest(BaseModel):
 
 
 # --- Feature 9: Alerts ---
+
 
 class AlertSubscribeRequest(BaseModel):
     role: str = ""
@@ -405,6 +439,7 @@ class AlertUpdateRequest(BaseModel):
 
 
 # --- Routes ---
+
 
 @app.get("/", response_class=HTMLResponse)
 async def dashboard():
@@ -463,7 +498,9 @@ async def import_job_from_url(request: JobImportRequest):
     job = await importer.import_from_url(request.url)
 
     if not job:
-        raise HTTPException(status_code=400, detail="Could not extract job details from URL")
+        raise HTTPException(
+            status_code=400, detail="Could not extract job details from URL"
+        )
 
     # Store the imported job
     db.upsert_job(job)
@@ -483,7 +520,7 @@ async def import_job_from_url(request: JobImportRequest):
             "strengths": match_result.strengths,
             "missing_skills": match_result.missing_skills,
         },
-        "message": "Job imported successfully"
+        "message": "Job imported successfully",
     }
 
 
@@ -536,14 +573,18 @@ async def trigger_scan(request: ScanRequest):
     import asyncio
     from jobpilot.scraper import SCRAPERS
 
-    scrapers_to_run = SCRAPERS if request.source == "all" else {request.source: SCRAPERS[request.source]}
+    scrapers_to_run = (
+        SCRAPERS
+        if request.source == "all"
+        else {request.source: SCRAPERS[request.source]}
+    )
     all_jobs = []
 
     for name, scraper_cls in scrapers_to_run.items():
         try:
             scraper = scraper_cls()
             jobs = await scraper.search(query=request.role, location=request.location)
-            jobs = jobs[:request.limit]
+            jobs = jobs[: request.limit]
             all_jobs.extend(jobs)
             for job in jobs:
                 db.upsert_job(job)
@@ -567,17 +608,19 @@ async def run_matching(request: MatchRequest):
         result = compute_match(profile, job)
         if result.overall_score >= request.min_score:
             db.save_match_result(result)
-            matched.append({
-                "job_id": result.job_id,
-                "company": job.company,
-                "title": job.title,
-                "overall_score": result.overall_score,
-                "strengths": result.strengths,
-                "missing_skills": result.missing_skills,
-            })
+            matched.append(
+                {
+                    "job_id": result.job_id,
+                    "company": job.company,
+                    "title": job.title,
+                    "overall_score": result.overall_score,
+                    "strengths": result.strengths,
+                    "missing_skills": result.missing_skills,
+                }
+            )
 
     matched.sort(key=lambda x: x["overall_score"], reverse=True)
-    return {"matched": matched[:request.limit], "total": len(matched)}
+    return {"matched": matched[: request.limit], "total": len(matched)}
 
 
 @app.get("/api/profile")
@@ -653,6 +696,7 @@ async def list_companies():
 
 # --- Resume Analysis ---
 
+
 @app.post("/api/resume/analyze")
 async def analyze_resume_api(request: ResumeAnalyzeRequest):
     """Analyze a resume from pasted text."""
@@ -699,6 +743,7 @@ async def resume_history():
 
 
 # --- Verification ---
+
 
 @app.post("/api/verify/request")
 async def verification_requested(request: VerificationRequest):
@@ -768,10 +813,16 @@ async def get_verification_status(entity_type: str, entity_id: str):
 # FEATURE 1: Resume PDF Upload
 # ============================================================================
 
+
 @app.post("/api/resume/upload")
 async def upload_resume(file: UploadFile = File(...), target_role: str = Form("")):
     """Upload a PDF or TXT resume file."""
-    from jobpilot.pdf_parser import extract_text_from_file, validate_upload, generate_resume_id, get_file_type
+    from jobpilot.pdf_parser import (
+        extract_text_from_file,
+        validate_upload,
+        generate_resume_id,
+        get_file_type,
+    )
 
     # Read file content
     content = await file.read()
@@ -814,7 +865,11 @@ async def upload_resume(file: UploadFile = File(...), target_role: str = Form(""
         file_type=file_type,
         file_size=len(content),
         raw_text=text,
-        extracted_data={"skills": result.skills, "name": result.name, "email": result.email},
+        extracted_data={
+            "skills": result.skills,
+            "name": result.name,
+            "email": result.email,
+        },
     )
 
     # Save analysis
@@ -859,6 +914,7 @@ async def delete_upload(resume_id: str):
 # FEATURE 2: AI Resume Improvement Suggestions
 # ============================================================================
 
+
 @app.post("/api/resume/suggestions")
 async def get_resume_suggestions(request: ResumeSuggestionsRequest):
     """Get detailed improvement suggestions for a resume."""
@@ -881,6 +937,7 @@ async def get_resume_suggestions(request: ResumeSuggestionsRequest):
 # ============================================================================
 # FEATURE 3: Cover Letter Generator
 # ============================================================================
+
 
 @app.post("/api/cover-letter/generate")
 async def generate_cover_letter(request: CoverLetterRequest):
@@ -952,6 +1009,7 @@ async def delete_cover_letter_api(letter_id: int):
 # FEATURE 4: Enhanced Application Tracker
 # ============================================================================
 
+
 @app.get("/api/applications/stats")
 async def get_application_stats():
     """Get application status statistics."""
@@ -1014,6 +1072,7 @@ async def get_notes(app_id: str):
 # FEATURE 5: Interview Preparation
 # ============================================================================
 
+
 @app.post("/api/interview/questions")
 async def generate_interview_questions(request: InterviewRequest):
     """Generate interview questions."""
@@ -1030,6 +1089,7 @@ async def generate_interview_questions(request: InterviewRequest):
     skills = []
     if text:
         from jobpilot.resume_analyzer import _extract_skills
+
         skills = _extract_skills(text)
 
     questions = generate_questions(
@@ -1080,6 +1140,7 @@ async def delete_interview_questions(question_id: int):
 # FEATURE 6: Skill Gap Analysis
 # ============================================================================
 
+
 @app.post("/api/skill-gap/analyze")
 async def analyze_skill_gap(request: SkillGapRequest):
     """Analyze skill gap between resume and job requirements."""
@@ -1089,17 +1150,20 @@ async def analyze_skill_gap(request: SkillGapRequest):
     resume_skills = []
     if request.resume_text:
         from jobpilot.resume_analyzer import _extract_skills
+
         resume_skills = _extract_skills(request.resume_text)
     elif request.resume_id:
         resume = db.get_resume(request.resume_id)
         if resume:
             from jobpilot.resume_analyzer import _extract_skills
+
             resume_skills = _extract_skills(resume.raw_text)
 
     # Get job skills
     job_skills = request.job_required_skills
     if not job_skills and request.job_description:
         from jobpilot.resume_analyzer import _extract_skills
+
         job_skills = _extract_skills(request.job_description)
     elif not job_skills and request.job_id:
         job = db.get_job(request.job_id)
@@ -1149,6 +1213,7 @@ async def get_skill_gap_report(report_id: int):
 # FEATURE 7: LinkedIn Profile Analyzer
 # ============================================================================
 
+
 @app.post("/api/linkedin/analyze")
 async def analyze_linkedin(request: LinkedInRequest):
     """Analyze LinkedIn profile content."""
@@ -1197,6 +1262,7 @@ async def get_linkedin_report(report_id: int):
 # ============================================================================
 # FEATURE 8: One-Click Resume Tailoring
 # ============================================================================
+
 
 @app.post("/api/resume/tailor")
 async def tailor_resume(request: ResumeTailorRequest):
@@ -1272,6 +1338,7 @@ async def delete_tailored_resume_api(resume_id: int):
 # FEATURE 9: Email Alerts
 # ============================================================================
 
+
 @app.post("/api/alerts/subscribe")
 async def subscribe_alert(request: AlertSubscribeRequest):
     """Create a job alert subscription."""
@@ -1329,13 +1396,16 @@ async def delete_alert(alert_id: int):
 
 # --- AI Career Roadmap ---
 
+
 class RoadmapRequest(BaseModel):
     goal_role: str
     goal_company: str = ""
 
 
 @app.post("/api/roadmap/generate")
-async def generate_roadmap(request: RoadmapRequest, current_user: TokenData = Depends(get_current_user)):
+async def generate_roadmap(
+    request: RoadmapRequest, current_user: TokenData = Depends(get_current_user)
+):
     """Generate a personalized career roadmap."""
     from jobpilot.career_roadmap import CareerRoadmapGenerator
 
@@ -1379,12 +1449,15 @@ async def update_roadmap_status(roadmap_id: int, status: str):
 
 # --- AI Career Coach ---
 
+
 class CoachRequest(BaseModel):
     question: str
 
 
 @app.post("/api/coach/ask")
-async def ask_coach(request: CoachRequest, current_user: TokenData = Depends(get_current_user)):
+async def ask_coach(
+    request: CoachRequest, current_user: TokenData = Depends(get_current_user)
+):
     """Ask the AI career coach a question."""
     from jobpilot.career_coach import CareerCoach
 
@@ -1403,13 +1476,16 @@ async def ask_coach(request: CoachRequest, current_user: TokenData = Depends(get
 
 
 @app.get("/api/coach/history")
-async def get_coach_history(limit: int = 20, current_user: TokenData = Depends(get_current_user)):
+async def get_coach_history(
+    limit: int = 20, current_user: TokenData = Depends(get_current_user)
+):
     """Get career coach conversation history."""
     conversations = db.get_coach_conversations(current_user.user_id, limit)
     return {"conversations": conversations, "total": len(conversations)}
 
 
 # --- Resume Version Manager ---
+
 
 class ResumeVersionRequest(BaseModel):
     name: str
@@ -1419,7 +1495,9 @@ class ResumeVersionRequest(BaseModel):
 
 
 @app.post("/api/resume/versions/create")
-async def create_resume_version(request: ResumeVersionRequest, current_user: TokenData = Depends(get_current_user)):
+async def create_resume_version(
+    request: ResumeVersionRequest, current_user: TokenData = Depends(get_current_user)
+):
     """Create a new resume version."""
     from jobpilot.resume_version_manager import ResumeVersionManager
 
@@ -1468,6 +1546,7 @@ async def delete_resume_version(version_id: int):
 
 # --- Company Interview Experience ---
 
+
 class InterviewExperienceRequest(BaseModel):
     company: str
     role: str
@@ -1490,8 +1569,10 @@ async def get_company_interview(company: str):
 
 
 @app.post("/api/interviews/submit")
-async def submit_interview_experience(request: InterviewExperienceRequest,
-                                      current_user: TokenData = Depends(get_current_user)):
+async def submit_interview_experience(
+    request: InterviewExperienceRequest,
+    current_user: TokenData = Depends(get_current_user),
+):
     """Submit a new interview experience."""
     from jobpilot.company_interviews import CompanyInterviewManager
 
@@ -1521,6 +1602,7 @@ async def list_companies_with_interviews():
 
 
 # --- AI Salary Estimator ---
+
 
 class SalaryEstimateRequest(BaseModel):
     role: str
@@ -1557,6 +1639,7 @@ async def get_salary_estimates(role: str = None, company: str = None):
 async def get_frequency_options():
     """Get available alert frequency options."""
     from jobpilot.alert_service import get_alert_frequency_options
+
     return {"options": get_alert_frequency_options()}
 
 
@@ -1564,6 +1647,7 @@ async def get_frequency_options():
 async def get_experience_levels():
     """Get available experience level options."""
     from jobpilot.alert_service import get_experience_level_options
+
     return {"options": get_experience_level_options()}
 
 
@@ -1571,10 +1655,12 @@ async def get_experience_levels():
 # FEATURE 10: Dashboard Analytics
 # ============================================================================
 
+
 @app.get("/api/dashboard/stats")
 async def get_dashboard_analytics():
     """Get comprehensive dashboard analytics."""
     from jobpilot.dashboard_analytics import compute_analytics
+
     return compute_analytics()
 
 
@@ -1582,6 +1668,7 @@ async def get_dashboard_analytics():
 async def get_dashboard_summary():
     """Get quick dashboard summary."""
     from jobpilot.dashboard_analytics import get_dashboard_summary
+
     return get_dashboard_summary()
 
 
@@ -1589,6 +1676,7 @@ async def get_dashboard_summary():
 async def get_application_timeline():
     """Get application timeline data."""
     from jobpilot.dashboard_analytics import _compute_application_timeline
+
     return {"timeline": _compute_application_timeline()}
 
 
@@ -1596,12 +1684,14 @@ async def get_application_timeline():
 async def get_skills_metrics():
     """Get skills coverage breakdown."""
     from jobpilot.dashboard_analytics import _compute_skills_metrics
+
     return _compute_skills_metrics()
 
 
 # ============================================================================
 # RESUME CATCH-ALL ROUTES (must be last to avoid catching specific paths)
 # ============================================================================
+
 
 @app.get("/api/resume/{resume_id}")
 async def get_resume_analysis(resume_id: str):
@@ -1630,6 +1720,7 @@ async def delete_resume_api(resume_id: str):
 # NEW JOB DETECTION & SMART ALERTS
 # ============================================================================
 
+
 @app.post("/api/scan/smart")
 async def smart_scan(request: ScanRequest):
     """Run smart scan with duplicate detection and notifications."""
@@ -1642,8 +1733,10 @@ async def smart_scan(request: ScanRequest):
         )
     else:
         result = await scanner.scan_source(
-            source=request.source, query=request.role,
-            location=request.location, limit=request.limit
+            source=request.source,
+            query=request.role,
+            location=request.location,
+            limit=request.limit,
         )
     return result
 
@@ -1695,6 +1788,7 @@ async def get_scan_stats():
 async def get_enhanced_dashboard():
     """Get enhanced dashboard with new job detection and trending analytics."""
     from jobpilot.dashboard_analytics import get_enhanced_dashboard
+
     return get_enhanced_dashboard()
 
 
@@ -1758,4 +1852,6 @@ async def get_recommended_certifications(limit: int = 5):
     from jobpilot.recommendation_engine import RecommendationEngine
 
     engine = RecommendationEngine()
-    return {"certifications": engine._recommend_certifications(engine._get_profile(), limit)}
+    return {
+        "certifications": engine._recommend_certifications(engine._get_profile(), limit)
+    }

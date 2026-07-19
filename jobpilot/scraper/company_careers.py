@@ -94,7 +94,9 @@ class CompanyCareersScraper(BaseScraper):
 
     source_name = "company_careers"
 
-    async def search(self, query: str, location: str = "", **kwargs) -> list[JobListing]:
+    async def search(
+        self, query: str, location: str = "", **kwargs
+    ) -> list[JobListing]:
         """Search across all configured company career pages."""
         companies = kwargs.get("companies", list(COMPANY_CAREERS.keys()))
         query_lower = query.lower()
@@ -107,21 +109,34 @@ class CompanyCareersScraper(BaseScraper):
             company_info = COMPANY_CAREERS[company_key]
             try:
                 if company_info.get("has_api"):
-                    jobs = await self._search_api(company_key, company_info, query, location)
+                    jobs = await self._search_api(
+                        company_key, company_info, query, location
+                    )
                 else:
-                    jobs = await self._search_webpage(company_key, company_info, query, location)
+                    jobs = await self._search_webpage(
+                        company_key, company_info, query, location
+                    )
                 all_jobs.extend(jobs)
             except Exception as e:
                 logger.warning(f"Failed to search {company_info['name']}: {e}")
 
         # Filter by query if needed
         if query_lower:
-            all_jobs = [j for j in all_jobs if query_lower in j.title.lower() or query_lower in j.description.lower()]
+            all_jobs = [
+                j
+                for j in all_jobs
+                if query_lower in j.title.lower()
+                or query_lower in j.description.lower()
+            ]
 
-        logger.info(f"Company Careers: found {len(all_jobs)} jobs across {len(companies)} companies")
+        logger.info(
+            f"Company Careers: found {len(all_jobs)} jobs across {len(companies)} companies"
+        )
         return all_jobs
 
-    async def _search_api(self, company_key: str, company_info: dict, query: str, location: str) -> list[JobListing]:
+    async def _search_api(
+        self, company_key: str, company_info: dict, query: str, location: str
+    ) -> list[JobListing]:
         """Search using company's direct API."""
         jobs = []
         url = company_info["api_url"].format(query=query, location=location)
@@ -142,7 +157,9 @@ class CompanyCareersScraper(BaseScraper):
 
         return jobs
 
-    async def _search_webpage(self, company_key: str, company_info: dict, query: str, location: str) -> list[JobListing]:
+    async def _search_webpage(
+        self, company_key: str, company_info: dict, query: str, location: str
+    ) -> list[JobListing]:
         """Search by scraping company career webpage."""
         jobs = []
         url = company_info["search_url"].format(query=query, location=location)
@@ -150,11 +167,16 @@ class CompanyCareersScraper(BaseScraper):
         try:
             response = await self._fetch(url)
             from bs4 import BeautifulSoup
+
             soup = BeautifulSoup(response.text, "html.parser")
 
             # Generic job card extraction
-            for card in soup.select("a[href*='job'], div[class*='job'], tr[class*='job']"):
-                title_el = card.select_one("h2, h3, span[class*='title'], a[class*='title']")
+            for card in soup.select(
+                "a[href*='job'], div[class*='job'], tr[class*='job']"
+            ):
+                title_el = card.select_one(
+                    "h2, h3, span[class*='title'], a[class*='title']"
+                )
                 if not title_el:
                     continue
                 title = title_el.get_text(strip=True)
@@ -166,17 +188,19 @@ class CompanyCareersScraper(BaseScraper):
                     href = f"{url.rsplit('/', 1)[0]}{href}"
 
                 skills = self._extract_skills(card.get_text())
-                jobs.append(JobListing(
-                    company=company_info["name"],
-                    title=title,
-                    location=location or "Various",
-                    remote_status="unknown",
-                    required_skills=skills,
-                    url=href,
-                    source="company_careers",
-                    tech_stack=skills,
-                    application_url=href,
-                ))
+                jobs.append(
+                    JobListing(
+                        company=company_info["name"],
+                        title=title,
+                        location=location or "Various",
+                        remote_status="unknown",
+                        required_skills=skills,
+                        url=href,
+                        source="company_careers",
+                        tech_stack=skills,
+                        application_url=href,
+                    )
+                )
         except Exception as e:
             logger.warning(f"Webpage search failed for {company_info['name']}: {e}")
 
@@ -192,12 +216,20 @@ class CompanyCareersScraper(BaseScraper):
             url = item.get("url", "")
             skills = self._extract_skills(desc)
             remote_status = "remote" if "remote" in location.lower() else "onsite"
-            jobs.append(JobListing(
-                company=company, title=title, location=location,
-                remote_status=remote_status, required_skills=skills,
-                description=desc[:500], url=url, source="company_careers",
-                tech_stack=skills, application_url=url,
-            ))
+            jobs.append(
+                JobListing(
+                    company=company,
+                    title=title,
+                    location=location,
+                    remote_status=remote_status,
+                    required_skills=skills,
+                    description=desc[:500],
+                    url=url,
+                    source="company_careers",
+                    tech_stack=skills,
+                    application_url=url,
+                )
+            )
         return jobs
 
     def _parse_microsoft_jobs(self, data: dict, company: str) -> list[JobListing]:
@@ -210,12 +242,20 @@ class CompanyCareersScraper(BaseScraper):
             url = f"https://careers.microsoft.com/us/en/job/{item.get('jobId', '')}"
             skills = self._extract_skills(desc)
             remote_status = "remote" if "remote" in location.lower() else "onsite"
-            jobs.append(JobListing(
-                company=company, title=title, location=location,
-                remote_status=remote_status, required_skills=skills,
-                description=desc[:500], url=url, source="company_careers",
-                tech_stack=skills, application_url=url,
-            ))
+            jobs.append(
+                JobListing(
+                    company=company,
+                    title=title,
+                    location=location,
+                    remote_status=remote_status,
+                    required_skills=skills,
+                    description=desc[:500],
+                    url=url,
+                    source="company_careers",
+                    tech_stack=skills,
+                    application_url=url,
+                )
+            )
         return jobs
 
     def _parse_amazon_jobs(self, data: dict, company: str) -> list[JobListing]:
@@ -228,10 +268,18 @@ class CompanyCareersScraper(BaseScraper):
             url = item.get("url", "")
             skills = self._extract_skills(desc)
             remote_status = "remote" if "remote" in location.lower() else "onsite"
-            jobs.append(JobListing(
-                company=company, title=title, location=location,
-                remote_status=remote_status, required_skills=skills,
-                description=desc[:500], url=url, source="company_careers",
-                tech_stack=skills, application_url=url,
-            ))
+            jobs.append(
+                JobListing(
+                    company=company,
+                    title=title,
+                    location=location,
+                    remote_status=remote_status,
+                    required_skills=skills,
+                    description=desc[:500],
+                    url=url,
+                    source="company_careers",
+                    tech_stack=skills,
+                    application_url=url,
+                )
+            )
         return jobs

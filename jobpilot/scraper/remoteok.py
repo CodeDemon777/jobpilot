@@ -15,7 +15,9 @@ class RemoteOKScraper(BaseScraper):
     source_name = "remoteok"
     base_url = "https://remoteok.com/api"
 
-    async def search(self, query: str, location: str = "", **kwargs) -> list[JobListing]:
+    async def search(
+        self, query: str, location: str = "", **kwargs
+    ) -> list[JobListing]:
         """Search RemoteOK for matching remote jobs."""
         try:
             response = await self._fetch(
@@ -36,9 +38,11 @@ class RemoteOKScraper(BaseScraper):
 
                 # Filter by query
                 if query_lower:
-                    if (query_lower not in title.lower()
-                            and query_lower not in company.lower()
-                            and query_lower not in item.get("description", "").lower()):
+                    if (
+                        query_lower not in title.lower()
+                        and query_lower not in company.lower()
+                        and query_lower not in item.get("description", "").lower()
+                    ):
                         continue
 
                 job = self._parse_job(item)

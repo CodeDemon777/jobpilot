@@ -14,7 +14,9 @@ def load_profile(path: Path = PROFILE_PATH) -> UserProfile:
         return UserProfile()
     with open(path, "r", encoding="utf-8") as f:
         data = yaml.safe_load(f) or {}
-    return UserProfile(**{k: v for k, v in data.items() if k in UserProfile.__dataclass_fields__})
+    return UserProfile(
+        **{k: v for k, v in data.items() if k in UserProfile.__dataclass_fields__}
+    )
 
 
 def save_profile(profile: UserProfile, path: Path = PROFILE_PATH) -> None:
@@ -22,7 +24,9 @@ def save_profile(profile: UserProfile, path: Path = PROFILE_PATH) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     data = {k: v for k, v in profile.__dict__.items()}
     with open(path, "w", encoding="utf-8") as f:
-        yaml.dump(data, f, default_flow_style=False, sort_keys=False, allow_unicode=True)
+        yaml.dump(
+            data, f, default_flow_style=False, sort_keys=False, allow_unicode=True
+        )
 
 
 def update_profile(**kwargs) -> UserProfile:

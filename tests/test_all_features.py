@@ -8,16 +8,33 @@ from unittest.mock import AsyncMock, patch, MagicMock
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from jobpilot.models import UserProfile, JobListing, MatchResult, Application, Company, Resume, _generate_id
+from jobpilot.models import (
+    UserProfile,
+    JobListing,
+    MatchResult,
+    Application,
+    Company,
+    Resume,
+    _generate_id,
+)
 from jobpilot.config import WEIGHTS, MATCH_THRESHOLD
 from jobpilot import database as db
 from jobpilot.profile import load_profile, save_profile
 from jobpilot.matcher import compute_match
 from jobpilot.resume_analyzer import (
-    analyze_resume, ResumeAnalysisResult, _extract_skills, _detect_sections,
-    _compute_ats_score, _extract_contact, _extract_education,
-    _estimate_experience_years, _generate_suggestions, _identify_strengths,
-    _identify_weaknesses, SKILL_DATABASE, _ALIAS_MAP,
+    analyze_resume,
+    ResumeAnalysisResult,
+    _extract_skills,
+    _detect_sections,
+    _compute_ats_score,
+    _extract_contact,
+    _extract_education,
+    _estimate_experience_years,
+    _generate_suggestions,
+    _identify_strengths,
+    _identify_weaknesses,
+    SKILL_DATABASE,
+    _ALIAS_MAP,
 )
 from jobpilot.scraper.base import BaseScraper
 from jobpilot.scraper.greenhouse import GreenhouseScraper, KNOWN_GREENHOUSE_BOARDS
@@ -179,9 +196,12 @@ print("\n=== Database ===")
 def test_db_create_tables():
     cleanup()
     conn = db.get_connection(TEST_DB)
-    tables = [r[0] for r in conn.execute(
-        "SELECT name FROM sqlite_master WHERE type='table'"
-    ).fetchall()]
+    tables = [
+        r[0]
+        for r in conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table'"
+        ).fetchall()
+    ]
     conn.close()
     assert "jobs" in tables
     assert "match_results" in tables
@@ -196,7 +216,9 @@ test("DB: creates all tables", test_db_create_tables)
 
 def test_db_upsert_job_new():
     cleanup()
-    j = JobListing(company="TestCo", title="Engineer", url="http://test.com/1", source="test")
+    j = JobListing(
+        company="TestCo", title="Engineer", url="http://test.com/1", source="test"
+    )
     is_new = db.upsert_job(j, TEST_DB)
     assert is_new is True
 
@@ -206,7 +228,9 @@ test("DB: upsert job new", test_db_upsert_job_new)
 
 def test_db_upsert_job_duplicate():
     cleanup()
-    j = JobListing(company="TestCo", title="Engineer", url="http://test.com/1", source="test")
+    j = JobListing(
+        company="TestCo", title="Engineer", url="http://test.com/1", source="test"
+    )
     db.upsert_job(j, TEST_DB)
     is_new = db.upsert_job(j, TEST_DB)
     assert is_new is False
@@ -240,7 +264,12 @@ test("DB: get nonexistent job returns None", test_db_get_nonexistent_job)
 def test_db_get_all_jobs():
     cleanup()
     for i in range(5):
-        j = JobListing(company=f"Co{i}", title=f"Role{i}", url=f"http://test.com/{i}", source="test")
+        j = JobListing(
+            company=f"Co{i}",
+            title=f"Role{i}",
+            url=f"http://test.com/{i}",
+            source="test",
+        )
         db.upsert_job(j, TEST_DB)
     jobs = db.get_all_jobs(TEST_DB)
     assert len(jobs) == 5
@@ -251,8 +280,26 @@ test("DB: get all jobs", test_db_get_all_jobs)
 
 def test_db_search_by_query():
     cleanup()
-    db.upsert_job(JobListing(company="PythonCo", title="Python Dev", url="http://a.com", source="greenhouse", description="python"), TEST_DB)
-    db.upsert_job(JobListing(company="JavaCo", title="Java Dev", url="http://b.com", source="linkedin", description="java"), TEST_DB)
+    db.upsert_job(
+        JobListing(
+            company="PythonCo",
+            title="Python Dev",
+            url="http://a.com",
+            source="greenhouse",
+            description="python",
+        ),
+        TEST_DB,
+    )
+    db.upsert_job(
+        JobListing(
+            company="JavaCo",
+            title="Java Dev",
+            url="http://b.com",
+            source="linkedin",
+            description="java",
+        ),
+        TEST_DB,
+    )
     results = db.search_jobs(query="python", db_path=TEST_DB)
     assert len(results) == 1
     assert results[0].company == "PythonCo"
@@ -263,8 +310,14 @@ test("DB: search jobs by query", test_db_search_by_query)
 
 def test_db_search_by_source():
     cleanup()
-    db.upsert_job(JobListing(company="A", title="A", url="http://a.com", source="greenhouse"), TEST_DB)
-    db.upsert_job(JobListing(company="B", title="B", url="http://b.com", source="linkedin"), TEST_DB)
+    db.upsert_job(
+        JobListing(company="A", title="A", url="http://a.com", source="greenhouse"),
+        TEST_DB,
+    )
+    db.upsert_job(
+        JobListing(company="B", title="B", url="http://b.com", source="linkedin"),
+        TEST_DB,
+    )
     results = db.search_jobs(source="linkedin", db_path=TEST_DB)
     assert len(results) == 1
     assert results[0].company == "B"
@@ -320,8 +373,12 @@ def test_db_application_filter_by_status():
     cleanup()
     j = JobListing(company="Co", title="R", url="http://x.com", source="test")
     db.upsert_job(j, TEST_DB)
-    db.upsert_application(Application(job_id=j.id, company="Co", role="R", status="applied"), TEST_DB)
-    db.upsert_application(Application(job_id=j.id, company="Co", role="R2", status="interview"), TEST_DB)
+    db.upsert_application(
+        Application(job_id=j.id, company="Co", role="R", status="applied"), TEST_DB
+    )
+    db.upsert_application(
+        Application(job_id=j.id, company="Co", role="R2", status="interview"), TEST_DB
+    )
     applied = db.get_applications(status="applied", db_path=TEST_DB)
     assert len(applied) == 1
     assert applied[0].status == "applied"
@@ -332,9 +389,17 @@ test("DB: application filter by status", test_db_application_filter_by_status)
 
 def test_db_match_result():
     cleanup()
-    j = JobListing(company="MatchCo", title="Dev", url="http://match.com", source="test")
+    j = JobListing(
+        company="MatchCo", title="Dev", url="http://match.com", source="test"
+    )
     db.upsert_job(j, TEST_DB)
-    m = MatchResult(job_id=j.id, overall_score=0.85, skills_score=0.9, strengths=["Good"], missing_skills=["rust"])
+    m = MatchResult(
+        job_id=j.id,
+        overall_score=0.85,
+        skills_score=0.9,
+        strengths=["Good"],
+        missing_skills=["rust"],
+    )
     db.save_match_result(m, TEST_DB)
     fetched = db.get_match_result(j.id, TEST_DB)
     assert fetched is not None
@@ -353,8 +418,12 @@ def test_db_match_result_role_score():
     m = MatchResult(job_id=j.id, overall_score=0.7, role_score=0.9, location_score=0.3)
     db.save_match_result(m, TEST_DB)
     fetched = db.get_match_result(j.id, TEST_DB)
-    assert fetched.role_score == 0.9, f"Expected role_score=0.9, got {fetched.role_score}"
-    assert fetched.location_score == 0.3, f"Expected location_score=0.3, got {fetched.location_score}"
+    assert (
+        fetched.role_score == 0.9
+    ), f"Expected role_score=0.9, got {fetched.role_score}"
+    assert (
+        fetched.location_score == 0.3
+    ), f"Expected location_score=0.3, got {fetched.location_score}"
 
 
 test("DB: match result role_score correct", test_db_match_result_role_score)
@@ -363,7 +432,15 @@ test("DB: match result role_score correct", test_db_match_result_role_score)
 def test_db_stats():
     cleanup()
     for i in range(3):
-        db.upsert_job(JobListing(company=f"C{i}", title=f"R{i}", url=f"http://s{i}.com", source="greenhouse"), TEST_DB)
+        db.upsert_job(
+            JobListing(
+                company=f"C{i}",
+                title=f"R{i}",
+                url=f"http://s{i}.com",
+                source="greenhouse",
+            ),
+            TEST_DB,
+        )
     stats = db.get_stats(TEST_DB)
     assert stats["total_jobs"] == 3
     assert stats["total_companies"] == 0
@@ -374,14 +451,18 @@ test("DB: stats", test_db_stats)
 
 def test_db_resume_crud():
     cleanup()
-    r = Resume(id="r1", name="test", filename="t.txt", raw_text="hello", target_role="dev")
+    r = Resume(
+        id="r1", name="test", filename="t.txt", raw_text="hello", target_role="dev"
+    )
     is_new = db.upsert_resume(r, TEST_DB)
     assert is_new is True
     fetched = db.get_resume("r1", TEST_DB)
     assert fetched is not None
     assert fetched.raw_text == "hello"
     # Update
-    is_new = db.upsert_resume(Resume(id="r1", name="updated", filename="t.txt", raw_text="hello2"), TEST_DB)
+    is_new = db.upsert_resume(
+        Resume(id="r1", name="updated", filename="t.txt", raw_text="hello2"), TEST_DB
+    )
     assert is_new is False
     fetched = db.get_resume("r1", TEST_DB)
     assert fetched.name == "updated"
@@ -393,7 +474,12 @@ test("DB: resume CRUD", test_db_resume_crud)
 def test_db_resume_list():
     cleanup()
     for i in range(3):
-        db.upsert_resume(Resume(id=f"r{i}", name=f"resume_{i}", filename=f"f{i}.txt", raw_text="text"), TEST_DB)
+        db.upsert_resume(
+            Resume(
+                id=f"r{i}", name=f"resume_{i}", filename=f"f{i}.txt", raw_text="text"
+            ),
+            TEST_DB,
+        )
     resumes = db.get_all_resumes(TEST_DB)
     assert len(resumes) == 3
     # raw_text should not be loaded
@@ -405,11 +491,20 @@ test("DB: resume list excludes raw_text", test_db_resume_list)
 
 def test_db_resume_delete_cascades():
     cleanup()
-    db.upsert_resume(Resume(id="del", name="x", filename="x.txt", raw_text="text"), TEST_DB)
+    db.upsert_resume(
+        Resume(id="del", name="x", filename="x.txt", raw_text="text"), TEST_DB
+    )
     db.save_resume_analysis(
-        resume_id="del", ats_score=0.5, resume_quality_score=0.5,
-        technical_strength_score=0.5, hiring_readiness_score=0.5,
-        skills=[], strengths=[], weaknesses=[], missing_skills=[], suggestions=[],
+        resume_id="del",
+        ats_score=0.5,
+        resume_quality_score=0.5,
+        technical_strength_score=0.5,
+        hiring_readiness_score=0.5,
+        skills=[],
+        strengths=[],
+        weaknesses=[],
+        missing_skills=[],
+        suggestions=[],
         db_path=TEST_DB,
     )
     found = db.delete_resume("del", TEST_DB)
@@ -423,12 +518,20 @@ test("DB: resume delete cascades to analyses", test_db_resume_delete_cascades)
 
 def test_db_resume_analysis_save_and_get():
     cleanup()
-    db.upsert_resume(Resume(id="ra1", name="r", filename="f.txt", raw_text="t"), TEST_DB)
+    db.upsert_resume(
+        Resume(id="ra1", name="r", filename="f.txt", raw_text="t"), TEST_DB
+    )
     db.save_resume_analysis(
-        resume_id="ra1", ats_score=0.85, resume_quality_score=0.80,
-        technical_strength_score=0.90, hiring_readiness_score=0.82,
-        skills=["python", "react"], strengths=["Strong"], weaknesses=["Weak"],
-        missing_skills=["rust"], suggestions=["Add projects"],
+        resume_id="ra1",
+        ats_score=0.85,
+        resume_quality_score=0.80,
+        technical_strength_score=0.90,
+        hiring_readiness_score=0.82,
+        skills=["python", "react"],
+        strengths=["Strong"],
+        weaknesses=["Weak"],
+        missing_skills=["rust"],
+        suggestions=["Add projects"],
         db_path=TEST_DB,
     )
     analyses = db.get_resume_analyses("ra1", TEST_DB)
@@ -449,13 +552,23 @@ print("\n=== Matcher ===")
 
 def test_match_strong():
     profile = UserProfile(
-        skills=["python", "react", "aws"], programming_languages=["python"],
-        frameworks=["react"], cloud_platforms=["aws"], experience_years=5,
-        preferred_roles=["software engineer"], preferred_locations=["remote"],
+        skills=["python", "react", "aws"],
+        programming_languages=["python"],
+        frameworks=["react"],
+        cloud_platforms=["aws"],
+        experience_years=5,
+        preferred_roles=["software engineer"],
+        preferred_locations=["remote"],
         remote_preference="remote",
     )
-    job = JobListing(company="Co", title="Software Engineer", location="Remote",
-                     remote_status="remote", required_skills=["python", "react"], experience_years=3)
+    job = JobListing(
+        company="Co",
+        title="Software Engineer",
+        location="Remote",
+        remote_status="remote",
+        required_skills=["python", "react"],
+        experience_years=3,
+    )
     result = compute_match(profile, job)
     assert result.overall_score >= 0.6, f"Expected >= 0.6, got {result.overall_score}"
     assert len(result.strengths) > 0
@@ -465,9 +578,20 @@ test("Match: strong match", test_match_strong)
 
 
 def test_match_poor():
-    profile = UserProfile(skills=["cooking"], experience_years=1, preferred_roles=["chef"], remote_preference="onsite")
-    job = JobListing(company="TechCo", title="Senior Rust Engineer", location="San Francisco",
-                     remote_status="onsite", required_skills=["rust", "c++", "go"], experience_years=8)
+    profile = UserProfile(
+        skills=["cooking"],
+        experience_years=1,
+        preferred_roles=["chef"],
+        remote_preference="onsite",
+    )
+    job = JobListing(
+        company="TechCo",
+        title="Senior Rust Engineer",
+        location="San Francisco",
+        remote_status="onsite",
+        required_skills=["rust", "c++", "go"],
+        experience_years=8,
+    )
     result = compute_match(profile, job)
     assert result.overall_score < 0.5, f"Expected < 0.5, got {result.overall_score}"
     assert len(result.missing_skills) > 0
@@ -478,8 +602,15 @@ test("Match: poor match", test_match_poor)
 
 def test_match_skills_weight():
     profile = UserProfile(skills=["python", "django", "postgresql"])
-    job_no = JobListing(company="Co", title="Dev", required_skills=[], experience_years=2)
-    job_all = JobListing(company="Co", title="Dev", required_skills=["python", "django", "postgresql"], experience_years=2)
+    job_no = JobListing(
+        company="Co", title="Dev", required_skills=[], experience_years=2
+    )
+    job_all = JobListing(
+        company="Co",
+        title="Dev",
+        required_skills=["python", "django", "postgresql"],
+        experience_years=2,
+    )
     r1 = compute_match(profile, job_no)
     r2 = compute_match(profile, job_all)
     assert r2.skills_score > r1.skills_score
@@ -512,8 +643,20 @@ test("Match: role alignment", test_match_role_alignment)
 
 def test_match_location_remote():
     profile = UserProfile(remote_preference="remote", preferred_locations=["remote"])
-    job_remote = JobListing(company="Co", title="Dev", location="Remote", remote_status="remote", required_skills=[])
-    job_onsite = JobListing(company="Co", title="Dev", location="New York", remote_status="onsite", required_skills=[])
+    job_remote = JobListing(
+        company="Co",
+        title="Dev",
+        location="Remote",
+        remote_status="remote",
+        required_skills=[],
+    )
+    job_onsite = JobListing(
+        company="Co",
+        title="Dev",
+        location="New York",
+        remote_status="onsite",
+        required_skills=[],
+    )
     r1 = compute_match(profile, job_remote)
     r2 = compute_match(profile, job_onsite)
     assert r1.location_score > r2.location_score
@@ -531,7 +674,9 @@ test("Match: weights sum to 1.0", test_match_weights_sum)
 
 def test_match_result_fields_valid():
     profile = UserProfile(skills=["python"], experience_years=3)
-    job = JobListing(company="Co", title="Dev", required_skills=["python"], experience_years=2)
+    job = JobListing(
+        company="Co", title="Dev", required_skills=["python"], experience_years=2
+    )
     result = compute_match(profile, job)
     assert 0 <= result.overall_score <= 1
     assert 0 <= result.skills_score <= 1
@@ -545,7 +690,13 @@ test("Match: result fields valid", test_match_result_fields_valid)
 
 def test_match_no_skills_neutral():
     profile = UserProfile(skills=["python"])
-    job = JobListing(company="Co", title="Dev", required_skills=[], preferred_skills=[], experience_years=2)
+    job = JobListing(
+        company="Co",
+        title="Dev",
+        required_skills=[],
+        preferred_skills=[],
+        experience_years=2,
+    )
     result = compute_match(profile, job)
     assert result.skills_score == 0.5, "No skills specified should give neutral score"
 
@@ -557,7 +708,9 @@ def test_match_no_experience_req():
     profile = UserProfile(experience_years=2)
     job = JobListing(company="Co", title="Dev", required_skills=[], experience_years=0)
     result = compute_match(profile, job)
-    assert result.experience_score == 0.7, "No experience req should give neutral-positive"
+    assert (
+        result.experience_score == 0.7
+    ), "No experience req should give neutral-positive"
 
 
 test("Match: no experience req = neutral", test_match_no_experience_req)
@@ -565,7 +718,13 @@ test("Match: no experience req = neutral", test_match_no_experience_req)
 
 def test_match_preferred_skills():
     profile = UserProfile(skills=["python", "docker"])
-    job = JobListing(company="Co", title="Dev", required_skills=["python"], preferred_skills=["docker"], experience_years=2)
+    job = JobListing(
+        company="Co",
+        title="Dev",
+        required_skills=["python"],
+        preferred_skills=["docker"],
+        experience_years=2,
+    )
     result = compute_match(profile, job)
     assert result.skills_score > 0.7, "Preferred skills should boost score"
 
@@ -592,7 +751,9 @@ def test_greenhouse_no_invalid_boards():
     """Ensure removed invalid boards are not in the list."""
     removed = ["doordash", "postmates", "snapinc", "twitter", "stripe"]
     for name in removed:
-        assert name not in KNOWN_GREENHOUSE_BOARDS, f"Invalid board {name} should be removed"
+        assert (
+            name not in KNOWN_GREENHOUSE_BOARDS
+        ), f"Invalid board {name} should be removed"
 
 
 test("Scraper: invalid boards removed", test_greenhouse_no_invalid_boards)
@@ -685,13 +846,23 @@ test("Scraper: remoteok parse job", test_remoteok_parse_job)
 
 def test_remoteok_parse_job_no_tags():
     scraper = RemoteOKScraper()
-    data = {"position": "Dev", "company": "Co", "description": "Python and React developer"}
+    data = {
+        "position": "Dev",
+        "company": "Co",
+        "description": "Python and React developer",
+    }
     job = scraper._parse_job(data)
-    assert "python" in job.required_skills, f"Expected python in skills, got {job.required_skills}"
-    assert "react" in job.required_skills, f"Expected react in skills, got {job.required_skills}"
+    assert (
+        "python" in job.required_skills
+    ), f"Expected python in skills, got {job.required_skills}"
+    assert (
+        "react" in job.required_skills
+    ), f"Expected react in skills, got {job.required_skills}"
 
 
-test("Scraper: remoteok fallback to description skills", test_remoteok_parse_job_no_tags)
+test(
+    "Scraper: remoteok fallback to description skills", test_remoteok_parse_job_no_tags
+)
 
 
 # =====================================================
@@ -732,7 +903,16 @@ AWS Solutions Architect - Associate
 
 def test_resume_skill_extraction():
     skills = _extract_skills(SAMPLE_RESUME)
-    for s in ["python", "react", "docker", "aws", "postgresql", "fastapi", "kubernetes", "git"]:
+    for s in [
+        "python",
+        "react",
+        "docker",
+        "aws",
+        "postgresql",
+        "fastapi",
+        "kubernetes",
+        "git",
+    ]:
         assert s in skills, f"Expected skill '{s}' not found"
 
 
@@ -769,7 +949,9 @@ test("Resume: contact extraction", test_resume_contact_extraction)
 
 def test_resume_experience_years():
     result = analyze_resume(SAMPLE_RESUME)
-    assert result.experience_years >= 4, f"Expected >= 4 years, got {result.experience_years}"
+    assert (
+        result.experience_years >= 4
+    ), f"Expected >= 4 years, got {result.experience_years}"
 
 
 test("Resume: experience years", test_resume_experience_years)
@@ -786,7 +968,12 @@ test("Resume: education extraction", test_resume_education)
 
 def test_resume_scores_in_range():
     result = analyze_resume(SAMPLE_RESUME)
-    for score_name in ["ats_score", "resume_quality_score", "technical_strength_score", "hiring_readiness_score"]:
+    for score_name in [
+        "ats_score",
+        "resume_quality_score",
+        "technical_strength_score",
+        "hiring_readiness_score",
+    ]:
         score = getattr(result, score_name)
         assert 0.0 <= score <= 1.0, f"{score_name} out of range: {score}"
 
@@ -797,7 +984,9 @@ test("Resume: scores in valid range", test_resume_scores_in_range)
 def test_resume_strengths():
     result = analyze_resume(SAMPLE_RESUME)
     assert len(result.strengths) > 0
-    assert any("skill" in s.lower() or "experience" in s.lower() for s in result.strengths)
+    assert any(
+        "skill" in s.lower() or "experience" in s.lower() for s in result.strengths
+    )
 
 
 test("Resume: has strengths", test_resume_strengths)
@@ -922,7 +1111,10 @@ def test_resume_suggestion_for_missing_linkedin():
     assert any("linkedin" in s.lower() for s in result.suggestions)
 
 
-test("Resume: suggestion for missing LinkedIn", test_resume_suggestion_for_missing_linkedin)
+test(
+    "Resume: suggestion for missing LinkedIn",
+    test_resume_suggestion_for_missing_linkedin,
+)
 
 
 def test_resume_strength_for_github():
@@ -944,7 +1136,11 @@ test("Resume: strength for certifications", test_resume_strength_for_certificati
 def test_resume_hiring_readiness_composite():
     result = analyze_resume(SAMPLE_RESUME)
     # Hiring readiness should be between the min and max of component scores
-    scores = [result.ats_score, result.technical_strength_score, result.resume_quality_score]
+    scores = [
+        result.ats_score,
+        result.technical_strength_score,
+        result.resume_quality_score,
+    ]
     assert min(scores) <= result.hiring_readiness_score <= max(scores) + 0.1
 
 
@@ -960,19 +1156,47 @@ print("\n=== Integration ===")
 def test_seed_match_rank():
     cleanup()
     profile = UserProfile(
-        name="TestUser", skills=["python", "react", "aws"],
-        programming_languages=["python"], frameworks=["react"],
-        cloud_platforms=["aws"], experience_years=4,
-        preferred_roles=["software engineer"], preferred_locations=["remote"],
+        name="TestUser",
+        skills=["python", "react", "aws"],
+        programming_languages=["python"],
+        frameworks=["react"],
+        cloud_platforms=["aws"],
+        experience_years=4,
+        preferred_roles=["software engineer"],
+        preferred_locations=["remote"],
         remote_preference="remote",
     )
     jobs = [
-        JobListing(company="Co1", title="Python Engineer", url="http://c1.com", source="test",
-                   required_skills=["python", "aws"], experience_years=3, remote_status="remote", location="Remote"),
-        JobListing(company="Co2", title="Rust Engineer", url="http://c2.com", source="test",
-                   required_skills=["rust", "c++"], experience_years=5, remote_status="onsite", location="NYC"),
-        JobListing(company="Co3", title="Full Stack", url="http://c3.com", source="test",
-                   required_skills=["python", "react"], experience_years=2, remote_status="remote", location="Remote"),
+        JobListing(
+            company="Co1",
+            title="Python Engineer",
+            url="http://c1.com",
+            source="test",
+            required_skills=["python", "aws"],
+            experience_years=3,
+            remote_status="remote",
+            location="Remote",
+        ),
+        JobListing(
+            company="Co2",
+            title="Rust Engineer",
+            url="http://c2.com",
+            source="test",
+            required_skills=["rust", "c++"],
+            experience_years=5,
+            remote_status="onsite",
+            location="NYC",
+        ),
+        JobListing(
+            company="Co3",
+            title="Full Stack",
+            url="http://c3.com",
+            source="test",
+            required_skills=["python", "react"],
+            experience_years=2,
+            remote_status="remote",
+            location="Remote",
+        ),
     ]
     for j in jobs:
         db.upsert_job(j, TEST_DB)
@@ -993,16 +1217,28 @@ def test_resume_analyze_and_store():
     cleanup()
     result = analyze_resume(SAMPLE_RESUME, target_role="backend engineer")
     resume_id = hashlib.sha256(SAMPLE_RESUME.encode()).hexdigest()[:16]
-    db.upsert_resume(Resume(id=resume_id, name="test", filename="test.txt",
-                            raw_text=SAMPLE_RESUME, target_role="backend engineer"), TEST_DB)
+    db.upsert_resume(
+        Resume(
+            id=resume_id,
+            name="test",
+            filename="test.txt",
+            raw_text=SAMPLE_RESUME,
+            target_role="backend engineer",
+        ),
+        TEST_DB,
+    )
     db.save_resume_analysis(
-        resume_id=resume_id, ats_score=result.ats_score,
+        resume_id=resume_id,
+        ats_score=result.ats_score,
         resume_quality_score=result.resume_quality_score,
         technical_strength_score=result.technical_strength_score,
         hiring_readiness_score=result.hiring_readiness_score,
-        skills=result.skills, strengths=result.strengths,
-        weaknesses=result.weaknesses, missing_skills=result.missing_skills,
-        suggestions=result.suggestions, db_path=TEST_DB,
+        skills=result.skills,
+        strengths=result.strengths,
+        weaknesses=result.weaknesses,
+        missing_skills=result.missing_skills,
+        suggestions=result.suggestions,
+        db_path=TEST_DB,
     )
     analyses = db.get_resume_analyses(resume_id, TEST_DB)
     assert len(analyses) == 1
@@ -1054,7 +1290,9 @@ def test_model_profile_yaml_roundtrip():
     (TEST_DB.parent / "test_profile.yaml").unlink(missing_ok=True)
 
 
-test("Model: profile YAML roundtrip with verification", test_model_profile_yaml_roundtrip)
+test(
+    "Model: profile YAML roundtrip with verification", test_model_profile_yaml_roundtrip
+)
 
 
 def test_db_verification_events_log():
@@ -1076,9 +1314,15 @@ test("DB: log verification event", test_db_verification_events_log)
 
 def test_db_verification_events_filter():
     cleanup()
-    db.log_verification_event("profile", "profile", "profile_verification_requested", db_path=TEST_DB)
-    db.log_verification_event("resume", "r1", "profile_verification_requested", db_path=TEST_DB)
-    db.log_verification_event("profile", "profile", "profile_verification_accepted", db_path=TEST_DB)
+    db.log_verification_event(
+        "profile", "profile", "profile_verification_requested", db_path=TEST_DB
+    )
+    db.log_verification_event(
+        "resume", "r1", "profile_verification_requested", db_path=TEST_DB
+    )
+    db.log_verification_event(
+        "profile", "profile", "profile_verification_accepted", db_path=TEST_DB
+    )
 
     profile_events = db.get_verification_events(entity_type="profile", db_path=TEST_DB)
     resume_events = db.get_verification_events(entity_type="resume", db_path=TEST_DB)
@@ -1086,23 +1330,34 @@ def test_db_verification_events_filter():
     assert len(resume_events) == 1
 
 
-test("DB: verification events filter by entity type", test_db_verification_events_filter)
+test(
+    "DB: verification events filter by entity type", test_db_verification_events_filter
+)
 
 
 def test_db_verification_events_chronological():
     cleanup()
-    db.log_verification_event("profile", "p", "profile_verification_requested", db_path=TEST_DB)
-    db.log_verification_event("profile", "p", "profile_verification_accepted", db_path=TEST_DB)
+    db.log_verification_event(
+        "profile", "p", "profile_verification_requested", db_path=TEST_DB
+    )
+    db.log_verification_event(
+        "profile", "p", "profile_verification_accepted", db_path=TEST_DB
+    )
     db.log_verification_event("profile", "p", "submission_completed", db_path=TEST_DB)
 
-    events = db.get_verification_events(entity_type="profile", entity_id="p", db_path=TEST_DB)
+    events = db.get_verification_events(
+        entity_type="profile", entity_id="p", db_path=TEST_DB
+    )
     assert len(events) == 3, f"Expected 3 events, got {len(events)}"
     # Newest first
     assert events[0]["event_type"] == "submission_completed"
     assert events[2]["event_type"] == "profile_verification_requested"
 
 
-test("DB: verification events chronological order", test_db_verification_events_chronological)
+test(
+    "DB: verification events chronological order",
+    test_db_verification_events_chronological,
+)
 
 
 def test_db_verification_status_not_verified():
@@ -1112,25 +1367,38 @@ def test_db_verification_status_not_verified():
     assert status["verified_at"] is None
 
 
-test("DB: verification status not verified by default", test_db_verification_status_not_verified)
+test(
+    "DB: verification status not verified by default",
+    test_db_verification_status_not_verified,
+)
 
 
 def test_db_verification_status_after_accept():
     cleanup()
-    db.log_verification_event("profile", "status_accept", "profile_verification_requested", db_path=TEST_DB)
-    db.log_verification_event("profile", "status_accept", "profile_verification_accepted", db_path=TEST_DB)
+    db.log_verification_event(
+        "profile", "status_accept", "profile_verification_requested", db_path=TEST_DB
+    )
+    db.log_verification_event(
+        "profile", "status_accept", "profile_verification_accepted", db_path=TEST_DB
+    )
     status = db.get_latest_verification_status("profile", "status_accept", TEST_DB)
     assert status["is_verified"] is True
     assert status["verified_at"] is not None
 
 
-test("DB: verification status after acceptance", test_db_verification_status_after_accept)
+test(
+    "DB: verification status after acceptance", test_db_verification_status_after_accept
+)
 
 
 def test_db_verification_status_after_decline():
     cleanup()
-    db.log_verification_event("profile", "status_decline", "profile_verification_requested", db_path=TEST_DB)
-    db.log_verification_event("profile", "status_decline", "profile_verification_declined", db_path=TEST_DB)
+    db.log_verification_event(
+        "profile", "status_decline", "profile_verification_requested", db_path=TEST_DB
+    )
+    db.log_verification_event(
+        "profile", "status_decline", "profile_verification_declined", db_path=TEST_DB
+    )
     status = db.get_latest_verification_status("profile", "status_decline", TEST_DB)
     assert status["is_verified"] is False
     assert status["last_event"] == "profile_verification_declined"
@@ -1143,14 +1411,21 @@ def test_db_verification_events_with_data():
     cleanup()
     data = {"name": "Test User", "email": "test@example.com"}
     db.log_verification_event(
-        "profile", "profile", "profile_verification_accepted",
-        event_data=data, db_path=TEST_DB,
+        "profile",
+        "profile",
+        "profile_verification_accepted",
+        event_data=data,
+        db_path=TEST_DB,
     )
     events = db.get_verification_events(db_path=TEST_DB)
     assert len(events) == 1
     assert events[0]["event_data"] is not None
     # event_data is stored as JSON string in SQLite
-    event_data = json.loads(events[0]["event_data"]) if isinstance(events[0]["event_data"], str) else events[0]["event_data"]
+    event_data = (
+        json.loads(events[0]["event_data"])
+        if isinstance(events[0]["event_data"], str)
+        else events[0]["event_data"]
+    )
     assert event_data["name"] == "Test User"
 
 
@@ -1165,11 +1440,14 @@ def test_api_profile_update_with_verification():
     client = TestClient(app)
 
     # Update profile with verification fields
-    response = client.put("/api/profile", json={
-        "name": "VerifyTest",
-        "is_verified": True,
-        "verified_at": "2026-07-18T00:00:00",
-    })
+    response = client.put(
+        "/api/profile",
+        json={
+            "name": "VerifyTest",
+            "is_verified": True,
+            "verified_at": "2026-07-18T00:00:00",
+        },
+    )
     assert response.status_code == 200
     data = response.json()
     assert data["name"] == "VerifyTest"
@@ -1183,10 +1461,15 @@ def test_api_profile_update_with_verification():
     assert data["is_verified"] is True
 
     # Reset for other tests
-    client.put("/api/profile", json={"name": "", "is_verified": False, "verified_at": ""})
+    client.put(
+        "/api/profile", json={"name": "", "is_verified": False, "verified_at": ""}
+    )
 
 
-test("API: profile update with verification fields", test_api_profile_update_with_verification)
+test(
+    "API: profile update with verification fields",
+    test_api_profile_update_with_verification,
+)
 
 
 def test_api_verify_request():
@@ -1194,10 +1477,13 @@ def test_api_verify_request():
     from jobpilot.web.app import app
 
     client = TestClient(app)
-    response = client.post("/api/verify/request", json={
-        "entity_type": "profile",
-        "entity_id": "profile",
-    })
+    response = client.post(
+        "/api/verify/request",
+        json={
+            "entity_type": "profile",
+            "entity_id": "profile",
+        },
+    )
     assert response.status_code == 200
     assert response.json()["logged"] is True
 
@@ -1210,15 +1496,18 @@ def test_api_verify_confirm():
     from jobpilot.web.app import app
 
     client = TestClient(app)
-    response = client.post("/api/verify/confirm", json={
-        "entity_type": "profile",
-        "entity_id": "profile",
-        "verified_data": {
-            "name": "Confirmed User",
-            "email": "confirmed@example.com",
-            "is_verified": True,
+    response = client.post(
+        "/api/verify/confirm",
+        json={
+            "entity_type": "profile",
+            "entity_id": "profile",
+            "verified_data": {
+                "name": "Confirmed User",
+                "email": "confirmed@example.com",
+                "is_verified": True,
+            },
         },
-    })
+    )
     assert response.status_code == 200
     data = response.json()
     assert data["verified"] is True
@@ -1238,10 +1527,13 @@ def test_api_verify_decline():
     from jobpilot.web.app import app
 
     client = TestClient(app)
-    response = client.post("/api/verify/decline", json={
-        "entity_type": "profile",
-        "entity_id": "profile",
-    })
+    response = client.post(
+        "/api/verify/decline",
+        json={
+            "entity_type": "profile",
+            "entity_id": "profile",
+        },
+    )
     assert response.status_code == 200
     assert response.json()["declined"] is True
 
@@ -1257,12 +1549,17 @@ def test_api_verify_status():
     # Use a unique entity_id to avoid conflicts with other tests
     unique_id = "status_test_api"
     # First log some events
-    client.post("/api/verify/request", json={"entity_type": "profile", "entity_id": unique_id})
-    client.post("/api/verify/confirm", json={
-        "entity_type": "profile",
-        "entity_id": unique_id,
-        "verified_data": {"name": "StatusTest"},
-    })
+    client.post(
+        "/api/verify/request", json={"entity_type": "profile", "entity_id": unique_id}
+    )
+    client.post(
+        "/api/verify/confirm",
+        json={
+            "entity_type": "profile",
+            "entity_id": unique_id,
+            "verified_data": {"name": "StatusTest"},
+        },
+    )
 
     response = client.get(f"/api/verify/status/profile/{unique_id}")
     assert response.status_code == 200
@@ -1284,25 +1581,31 @@ def test_full_verification_flow():
     unique_id = "full_flow_test"
 
     # Step 1: User clicks Save Profile, modal opens -> request logged
-    response = client.post("/api/verify/request", json={
-        "entity_type": "profile",
-        "entity_id": unique_id,
-    })
+    response = client.post(
+        "/api/verify/request",
+        json={
+            "entity_type": "profile",
+            "entity_id": unique_id,
+        },
+    )
     assert response.status_code == 200
 
     # Step 2: User confirms -> data saved with verification
-    response = client.post("/api/verify/confirm", json={
-        "entity_type": "profile",
-        "entity_id": unique_id,
-        "verified_data": {
-            "name": "Full Flow User",
-            "email": "fullflow@example.com",
-            "skills": ["python", "react"],
-            "experience_years": 5,
-            "is_verified": True,
-            "verified_at": "2026-07-18T00:00:00",
+    response = client.post(
+        "/api/verify/confirm",
+        json={
+            "entity_type": "profile",
+            "entity_id": unique_id,
+            "verified_data": {
+                "name": "Full Flow User",
+                "email": "fullflow@example.com",
+                "skills": ["python", "react"],
+                "experience_years": 5,
+                "is_verified": True,
+                "verified_at": "2026-07-18T00:00:00",
+            },
         },
-    })
+    )
     assert response.status_code == 200
     assert response.json()["verified"] is True
 
@@ -1335,13 +1638,18 @@ def test_verification_decline_then_resubmit():
     client.put("/api/profile", json={"name": "Original"})
 
     # Step 1: Request verification
-    client.post("/api/verify/request", json={"entity_type": "profile", "entity_id": unique_id})
+    client.post(
+        "/api/verify/request", json={"entity_type": "profile", "entity_id": unique_id}
+    )
 
     # Step 2: User declines (chooses to edit)
-    response = client.post("/api/verify/decline", json={
-        "entity_type": "profile",
-        "entity_id": unique_id,
-    })
+    response = client.post(
+        "/api/verify/decline",
+        json={
+            "entity_type": "profile",
+            "entity_id": unique_id,
+        },
+    )
     assert response.status_code == 200
 
     # Verify profile was NOT updated (name should still be Original)
@@ -1349,12 +1657,17 @@ def test_verification_decline_then_resubmit():
     assert response.json()["name"] == "Original"
 
     # Step 3: User edits and re-submits
-    client.post("/api/verify/request", json={"entity_type": "profile", "entity_id": unique_id})
-    response = client.post("/api/verify/confirm", json={
-        "entity_type": "profile",
-        "entity_id": unique_id,
-        "verified_data": {"name": "Updated", "is_verified": True},
-    })
+    client.post(
+        "/api/verify/request", json={"entity_type": "profile", "entity_id": unique_id}
+    )
+    response = client.post(
+        "/api/verify/confirm",
+        json={
+            "entity_type": "profile",
+            "entity_id": unique_id,
+            "verified_data": {"name": "Updated", "is_verified": True},
+        },
+    )
     assert response.status_code == 200
 
     # Verify profile was updated
@@ -1375,12 +1688,15 @@ print("\n=== Feature 1: Resume Upload ===")
 def test_upload_txt_file():
     from fastapi.testclient import TestClient
     from jobpilot.web.app import app
+
     client = TestClient(app)
 
     content = b"John Doe\njohn@email.com\nPython Developer with 5 years experience.\n\nSkills: Python, Django, PostgreSQL\n\nExperience: Software Engineer at TechCo"
-    response = client.post("/api/resume/upload",
+    response = client.post(
+        "/api/resume/upload",
         files={"file": ("test.txt", content, "text/plain")},
-        data={"target_role": "backend engineer"})
+        data={"target_role": "backend engineer"},
+    )
     assert response.status_code == 200
     data = response.json()
     assert "resume_id" in data
@@ -1395,10 +1711,12 @@ test("Upload: TXT file upload", test_upload_txt_file)
 def test_upload_empty_file_rejected():
     from fastapi.testclient import TestClient
     from jobpilot.web.app import app
+
     client = TestClient(app)
 
-    response = client.post("/api/resume/upload",
-        files={"file": ("empty.txt", b"", "text/plain")})
+    response = client.post(
+        "/api/resume/upload", files={"file": ("empty.txt", b"", "text/plain")}
+    )
     assert response.status_code == 400
 
 
@@ -1408,10 +1726,13 @@ test("Upload: empty file rejected", test_upload_empty_file_rejected)
 def test_upload_unsupported_format_rejected():
     from fastapi.testclient import TestClient
     from jobpilot.web.app import app
+
     client = TestClient(app)
 
-    response = client.post("/api/resume/upload",
-        files={"file": ("test.exe", b"binary", "application/octet-stream")})
+    response = client.post(
+        "/api/resume/upload",
+        files={"file": ("test.exe", b"binary", "application/octet-stream")},
+    )
     assert response.status_code == 400
 
 
@@ -1421,12 +1742,14 @@ test("Upload: unsupported format rejected", test_upload_unsupported_format_rejec
 def test_upload_list_and_delete():
     from fastapi.testclient import TestClient
     from jobpilot.web.app import app
+
     client = TestClient(app)
 
     # Upload a file
     content = b"Test resume content with enough words to pass validation"
-    upload = client.post("/api/resume/upload",
-        files={"file": ("test.txt", content, "text/plain")})
+    upload = client.post(
+        "/api/resume/upload", files={"file": ("test.txt", content, "text/plain")}
+    )
     assert upload.status_code == 200
     resume_id = upload.json()["resume_id"]
 
@@ -1445,11 +1768,13 @@ test("Upload: list and delete", test_upload_list_and_delete)
 def test_upload_stores_resume_in_db():
     from fastapi.testclient import TestClient
     from jobpilot.web.app import app
+
     client = TestClient(app)
 
     content = b"Jane Smith\nSkills: React, Node.js, TypeScript"
-    upload = client.post("/api/resume/upload",
-        files={"file": ("jane.txt", content, "text/plain")})
+    upload = client.post(
+        "/api/resume/upload", files={"file": ("jane.txt", content, "text/plain")}
+    )
     resume_id = upload.json()["resume_id"]
 
     # Check resume exists in DB
@@ -1480,11 +1805,13 @@ print("\n=== Feature 2: Resume Improvement ===")
 def test_improve_generates_suggestions():
     from fastapi.testclient import TestClient
     from jobpilot.web.app import app
+
     client = TestClient(app)
 
-    response = client.post("/api/resume/suggestions", json={
-        "resume_text": "John Doe\nPython developer with 3 years experience."
-    })
+    response = client.post(
+        "/api/resume/suggestions",
+        json={"resume_text": "John Doe\nPython developer with 3 years experience."},
+    )
     assert response.status_code == 200
     data = response.json()
     assert "strengths" in data
@@ -1509,7 +1836,9 @@ test("Improve: identifies weaknesses", test_improve_identifies_weaknesses)
 def test_improve_recommends_keywords():
     from jobpilot.resume_improver import generate_improvement_report
 
-    report = generate_improvement_report("Resume with Python.", target_role="backend engineer")
+    report = generate_improvement_report(
+        "Resume with Python.", target_role="backend engineer"
+    )
     assert len(report["recommended_keywords"]) > 0
 
 
@@ -1519,7 +1848,9 @@ test("Improve: recommends keywords", test_improve_recommends_keywords)
 def test_improve_calculates_score_delta():
     from jobpilot.resume_improver import generate_improvement_report
 
-    report = generate_improvement_report("Complete resume with skills, experience, and education.")
+    report = generate_improvement_report(
+        "Complete resume with skills, experience, and education."
+    )
     assert "score_before" in report
     assert "score_after" in report
     assert report["score_after"]["ats"] >= report["score_before"]["ats"]
@@ -1531,6 +1862,7 @@ test("Improve: calculates score delta", test_improve_calculates_score_delta)
 def test_improve_empty_resume_handled():
     from fastapi.testclient import TestClient
     from jobpilot.web.app import app
+
     client = TestClient(app)
 
     response = client.post("/api/resume/suggestions", json={"resume_text": ""})
@@ -1549,16 +1881,20 @@ print("\n=== Feature 3: Cover Letter ===")
 def test_cover_letter_generate():
     from fastapi.testclient import TestClient
     from jobpilot.web.app import app
+
     client = TestClient(app)
 
-    response = client.post("/api/cover-letter/generate", json={
-        "resume_text": "John Doe\nPython developer with 5 years experience in web development.",
-        "job_description": "Looking for a Python developer with Django experience.",
-        "company_name": "TechCorp",
-        "role_title": "Python Developer",
-        "tone": "professional",
-        "candidate_name": "John Doe",
-    })
+    response = client.post(
+        "/api/cover-letter/generate",
+        json={
+            "resume_text": "John Doe\nPython developer with 5 years experience in web development.",
+            "job_description": "Looking for a Python developer with Django experience.",
+            "company_name": "TechCorp",
+            "role_title": "Python Developer",
+            "tone": "professional",
+            "candidate_name": "John Doe",
+        },
+    )
     assert response.status_code == 200
     data = response.json()
     assert "letter_text" in data
@@ -1573,14 +1909,18 @@ test("Cover Letter: generate", test_cover_letter_generate)
 def test_cover_letter_stored_in_db():
     from fastapi.testclient import TestClient
     from jobpilot.web.app import app
+
     client = TestClient(app)
 
-    response = client.post("/api/cover-letter/generate", json={
-        "resume_text": "Resume content",
-        "job_description": "Job description",
-        "company_name": "TestCo",
-        "role_title": "Developer",
-    })
+    response = client.post(
+        "/api/cover-letter/generate",
+        json={
+            "resume_text": "Resume content",
+            "job_description": "Job description",
+            "company_name": "TestCo",
+            "role_title": "Developer",
+        },
+    )
     letter_id = response.json()["id"]
     assert letter_id > 0
 
@@ -1591,13 +1931,19 @@ test("Cover Letter: stored in DB", test_cover_letter_stored_in_db)
 def test_cover_letter_history():
     from fastapi.testclient import TestClient
     from jobpilot.web.app import app
+
     client = TestClient(app)
 
     # Generate a letter first
-    client.post("/api/cover-letter/generate", json={
-        "resume_text": "Resume", "job_description": "Job",
-        "company_name": "Co", "role_title": "Dev",
-    })
+    client.post(
+        "/api/cover-letter/generate",
+        json={
+            "resume_text": "Resume",
+            "job_description": "Job",
+            "company_name": "Co",
+            "role_title": "Dev",
+        },
+    )
 
     response = client.get("/api/cover-letter/history")
     assert response.status_code == 200
@@ -1610,12 +1956,18 @@ test("Cover Letter: history", test_cover_letter_history)
 def test_cover_letter_delete():
     from fastapi.testclient import TestClient
     from jobpilot.web.app import app
+
     client = TestClient(app)
 
-    resp = client.post("/api/cover-letter/generate", json={
-        "resume_text": "Resume", "job_description": "Job",
-        "company_name": "Co", "role_title": "Dev",
-    })
+    resp = client.post(
+        "/api/cover-letter/generate",
+        json={
+            "resume_text": "Resume",
+            "job_description": "Job",
+            "company_name": "Co",
+            "role_title": "Dev",
+        },
+    )
     letter_id = resp.json()["id"]
 
     response = client.delete(f"/api/cover-letter/{letter_id}")
@@ -1629,8 +1981,12 @@ test("Cover Letter: delete", test_cover_letter_delete)
 def test_cover_letter_tone_variation():
     from jobpilot.cover_letter_generator import generate_cover_letter
 
-    result1 = generate_cover_letter("Resume", "Job desc", "Co", "Dev", tone="professional")
-    result2 = generate_cover_letter("Resume", "Job desc", "Co", "Dev", tone="enthusiastic")
+    result1 = generate_cover_letter(
+        "Resume", "Job desc", "Co", "Dev", tone="professional"
+    )
+    result2 = generate_cover_letter(
+        "Resume", "Job desc", "Co", "Dev", tone="enthusiastic"
+    )
     assert result1["letter_text"] != result2["letter_text"]
 
 
@@ -1640,12 +1996,18 @@ test("Cover Letter: tone variation", test_cover_letter_tone_variation)
 def test_cover_letter_empty_resume_handled():
     from fastapi.testclient import TestClient
     from jobpilot.web.app import app
+
     client = TestClient(app)
 
-    response = client.post("/api/cover-letter/generate", json={
-        "resume_text": "", "job_description": "Job",
-        "company_name": "Co", "role_title": "Dev",
-    })
+    response = client.post(
+        "/api/cover-letter/generate",
+        json={
+            "resume_text": "",
+            "job_description": "Job",
+            "company_name": "Co",
+            "role_title": "Dev",
+        },
+    )
     assert response.status_code == 400
 
 
@@ -1661,16 +2023,21 @@ print("\n=== Feature 4: Application Tracker ===")
 def test_tracker_create_with_status():
     from fastapi.testclient import TestClient
     from jobpilot.web.app import app
+
     client = TestClient(app)
 
     # Create a job first
     from jobpilot.models import JobListing
-    job = JobListing(company="TestCo", title="Dev", url="http://test.com", source="test")
+
+    job = JobListing(
+        company="TestCo", title="Dev", url="http://test.com", source="test"
+    )
     db.upsert_job(job)
 
-    response = client.post("/api/applications", json={
-        "job_id": job.id, "status": "saved", "notes": "Test application"
-    })
+    response = client.post(
+        "/api/applications",
+        json={"job_id": job.id, "status": "saved", "notes": "Test application"},
+    )
     assert response.status_code == 200
     assert response.json()["status"] == "saved"
 
@@ -1681,10 +2048,14 @@ test("Tracker: create with status", test_tracker_create_with_status)
 def test_tracker_update_status():
     from fastapi.testclient import TestClient
     from jobpilot.web.app import app
+
     client = TestClient(app)
 
     from jobpilot.models import JobListing, Application
-    job = JobListing(company="UpdateCo", title="Dev", url="http://update.com", source="test")
+
+    job = JobListing(
+        company="UpdateCo", title="Dev", url="http://update.com", source="test"
+    )
     db.upsert_job(job)
 
     resp = client.post("/api/applications", json={"job_id": job.id, "status": "saved"})
@@ -1702,10 +2073,14 @@ test("Tracker: update status", test_tracker_update_status)
 def test_tracker_delete():
     from fastapi.testclient import TestClient
     from jobpilot.web.app import app
+
     client = TestClient(app)
 
     from jobpilot.models import JobListing, Application
-    job = JobListing(company="DeleteCo", title="Dev", url="http://delete.com", source="test")
+
+    job = JobListing(
+        company="DeleteCo", title="Dev", url="http://delete.com", source="test"
+    )
     db.upsert_job(job)
 
     resp = client.post("/api/applications", json={"job_id": job.id})
@@ -1722,6 +2097,7 @@ test("Tracker: delete", test_tracker_delete)
 def test_tracker_stats():
     from fastapi.testclient import TestClient
     from jobpilot.web.app import app
+
     client = TestClient(app)
 
     response = client.get("/api/applications/stats")
@@ -1739,7 +2115,15 @@ def test_tracker_all_statuses_valid():
     from jobpilot.resume_analyzer import _extract_skills
 
     # Verify all status values are valid
-    valid_statuses = ["saved", "applied", "interview", "assessment", "offer", "rejected", "accepted"]
+    valid_statuses = [
+        "saved",
+        "applied",
+        "interview",
+        "assessment",
+        "offer",
+        "rejected",
+        "accepted",
+    ]
     assert len(valid_statuses) == 7
 
 
@@ -1749,19 +2133,24 @@ test("Tracker: all statuses valid", test_tracker_all_statuses_valid)
 def test_tracker_notes():
     from fastapi.testclient import TestClient
     from jobpilot.web.app import app
+
     client = TestClient(app)
 
     from jobpilot.models import JobListing
-    job = JobListing(company="NoteCo", title="Dev", url="http://note.com", source="test")
+
+    job = JobListing(
+        company="NoteCo", title="Dev", url="http://note.com", source="test"
+    )
     db.upsert_job(job)
 
     resp = client.post("/api/applications", json={"job_id": job.id})
     app_id = resp.json()["job_id"]
 
     # Add note
-    response = client.post(f"/api/applications/{app_id}/notes", params={
-        "note_type": "interview", "content": "Had phone screen"
-    })
+    response = client.post(
+        f"/api/applications/{app_id}/notes",
+        params={"note_type": "interview", "content": "Had phone screen"},
+    )
     assert response.status_code == 200
 
     # Get notes
@@ -1782,15 +2171,19 @@ print("\n=== Feature 5: Interview Prep ===")
 def test_interview_generate_questions():
     from fastapi.testclient import TestClient
     from jobpilot.web.app import app
+
     client = TestClient(app)
 
-    response = client.post("/api/interview/questions", json={
-        "resume_text": "Python developer with Django experience",
-        "role_title": "Python Developer",
-        "categories": ["technical", "behavioral"],
-        "difficulty": "intermediate",
-        "count": 5,
-    })
+    response = client.post(
+        "/api/interview/questions",
+        json={
+            "resume_text": "Python developer with Django experience",
+            "role_title": "Python Developer",
+            "categories": ["technical", "behavioral"],
+            "difficulty": "intermediate",
+            "count": 5,
+        },
+    )
     assert response.status_code == 200
     data = response.json()
     assert data["total"] >= 1
@@ -1804,7 +2197,9 @@ test("Interview: generate questions", test_interview_generate_questions)
 def test_interview_categories_filtered():
     from jobpilot.interview_coach import generate_questions
 
-    questions = generate_questions(categories=["technical"], difficulty="beginner", count=5)
+    questions = generate_questions(
+        categories=["technical"], difficulty="beginner", count=5
+    )
     for q in questions:
         assert q["category"] == "technical"
 
@@ -1815,8 +2210,12 @@ test("Interview: categories filtered", test_interview_categories_filtered)
 def test_interview_difficulty_levels():
     from jobpilot.interview_coach import generate_questions
 
-    beginner = generate_questions(categories=["technical"], difficulty="beginner", count=3)
-    advanced = generate_questions(categories=["technical"], difficulty="advanced", count=3)
+    beginner = generate_questions(
+        categories=["technical"], difficulty="beginner", count=3
+    )
+    advanced = generate_questions(
+        categories=["technical"], difficulty="advanced", count=3
+    )
     assert all(q["difficulty"] == "beginner" for q in beginner)
     assert all(q["difficulty"] == "advanced" for q in advanced)
 
@@ -1827,11 +2226,16 @@ test("Interview: difficulty levels", test_interview_difficulty_levels)
 def test_interview_history():
     from fastapi.testclient import TestClient
     from jobpilot.web.app import app
+
     client = TestClient(app)
 
-    client.post("/api/interview/questions", json={
-        "role_title": "Dev", "count": 3,
-    })
+    client.post(
+        "/api/interview/questions",
+        json={
+            "role_title": "Dev",
+            "count": 3,
+        },
+    )
 
     response = client.get("/api/interview/history")
     assert response.status_code == 200
@@ -1860,12 +2264,16 @@ print("\n=== Feature 6: Skill Gap ===")
 def test_skill_gap_analysis():
     from fastapi.testclient import TestClient
     from jobpilot.web.app import app
+
     client = TestClient(app)
 
-    response = client.post("/api/skill-gap/analyze", json={
-        "resume_text": "Python developer with Django and PostgreSQL",
-        "job_description": "Looking for Python, Django, Docker, and AWS experience",
-    })
+    response = client.post(
+        "/api/skill-gap/analyze",
+        json={
+            "resume_text": "Python developer with Django and PostgreSQL",
+            "job_description": "Looking for Python, Django, Docker, and AWS experience",
+        },
+    )
     assert response.status_code == 200
     data = response.json()
     assert "matched_skills" in data
@@ -1907,11 +2315,16 @@ test("Skill Gap: percentage", test_skill_gap_percentage)
 def test_skill_gap_stored_in_db():
     from fastapi.testclient import TestClient
     from jobpilot.web.app import app
+
     client = TestClient(app)
 
-    response = client.post("/api/skill-gap/analyze", json={
-        "resume_text": "Skills", "job_description": "Requirements",
-    })
+    response = client.post(
+        "/api/skill-gap/analyze",
+        json={
+            "resume_text": "Skills",
+            "job_description": "Requirements",
+        },
+    )
     assert response.json()["report_id"] > 0
 
 
@@ -1921,11 +2334,16 @@ test("Skill Gap: stored in DB", test_skill_gap_stored_in_db)
 def test_skill_gap_history():
     from fastapi.testclient import TestClient
     from jobpilot.web.app import app
+
     client = TestClient(app)
 
-    client.post("/api/skill-gap/analyze", json={
-        "resume_text": "Skills", "job_description": "Requirements",
-    })
+    client.post(
+        "/api/skill-gap/analyze",
+        json={
+            "resume_text": "Skills",
+            "job_description": "Requirements",
+        },
+    )
 
     response = client.get("/api/skill-gap/history")
     assert response.status_code == 200
@@ -1944,14 +2362,18 @@ print("\n=== Feature 7: LinkedIn ===")
 def test_linkedin_analyze():
     from fastapi.testclient import TestClient
     from jobpilot.web.app import app
+
     client = TestClient(app)
 
-    response = client.post("/api/linkedin/analyze", json={
-        "headline": "Senior Software Engineer at Google | Python Expert",
-        "about": "I am a passionate developer with 10 years of experience building scalable systems.",
-        "skills": "Python, Java, AWS, Docker, Kubernetes",
-        "experience": "Led team of 5 engineers. Built microservices handling 1M requests/day.",
-    })
+    response = client.post(
+        "/api/linkedin/analyze",
+        json={
+            "headline": "Senior Software Engineer at Google | Python Expert",
+            "about": "I am a passionate developer with 10 years of experience building scalable systems.",
+            "skills": "Python, Java, AWS, Docker, Kubernetes",
+            "experience": "Led team of 5 engineers. Built microservices handling 1M requests/day.",
+        },
+    )
     assert response.status_code == 200
     data = response.json()
     assert "suggestions" in data
@@ -1965,7 +2387,9 @@ test("LinkedIn: analyze", test_linkedin_analyze)
 def test_linkedin_suggestions():
     from jobpilot.linkedin_analyzer import analyze_linkedin_profile
 
-    result = analyze_linkedin_profile(headline="Dev", about="", skills="", experience="")
+    result = analyze_linkedin_profile(
+        headline="Dev", about="", skills="", experience=""
+    )
     assert len(result["suggestions"]) > 0
 
 
@@ -1990,11 +2414,16 @@ test("LinkedIn: visibility score", test_linkedin_visibility_score)
 def test_linkedin_stored_in_db():
     from fastapi.testclient import TestClient
     from jobpilot.web.app import app
+
     client = TestClient(app)
 
-    response = client.post("/api/linkedin/analyze", json={
-        "headline": "Dev", "about": "About me",
-    })
+    response = client.post(
+        "/api/linkedin/analyze",
+        json={
+            "headline": "Dev",
+            "about": "About me",
+        },
+    )
     assert response.json()["report_id"] > 0
 
 
@@ -2015,6 +2444,7 @@ test("LinkedIn: empty input handled", test_linkedin_empty_input_handled)
 def test_linkedin_history():
     from fastapi.testclient import TestClient
     from jobpilot.web.app import app
+
     client = TestClient(app)
 
     client.post("/api/linkedin/analyze", json={"headline": "Dev"})
@@ -2036,12 +2466,16 @@ print("\n=== Feature 8: Resume Tailoring ===")
 def test_tailor_generates_output():
     from fastapi.testclient import TestClient
     from jobpilot.web.app import app
+
     client = TestClient(app)
 
-    response = client.post("/api/resume/tailor", json={
-        "resume_text": "John Doe\nPython developer with 5 years experience.\n\nSkills: Python, Django, PostgreSQL\n\nExperience: Built web apps.",
-        "job_description": "Looking for Python, Docker, AWS, Kubernetes experience.",
-    })
+    response = client.post(
+        "/api/resume/tailor",
+        json={
+            "resume_text": "John Doe\nPython developer with 5 years experience.\n\nSkills: Python, Django, PostgreSQL\n\nExperience: Built web apps.",
+            "job_description": "Looking for Python, Docker, AWS, Kubernetes experience.",
+        },
+    )
     assert response.status_code == 200
     data = response.json()
     assert "original_text" in data
@@ -2084,11 +2518,16 @@ test("Tailor: keywords added", test_tailor_keywords_added)
 def test_tailor_stored_in_db():
     from fastapi.testclient import TestClient
     from jobpilot.web.app import app
+
     client = TestClient(app)
 
-    response = client.post("/api/resume/tailor", json={
-        "resume_text": "Resume", "job_description": "Job desc",
-    })
+    response = client.post(
+        "/api/resume/tailor",
+        json={
+            "resume_text": "Resume",
+            "job_description": "Job desc",
+        },
+    )
     assert response.json()["id"] > 0
 
 
@@ -2098,11 +2537,16 @@ test("Tailor: stored in DB", test_tailor_stored_in_db)
 def test_tailor_history():
     from fastapi.testclient import TestClient
     from jobpilot.web.app import app
+
     client = TestClient(app)
 
-    client.post("/api/resume/tailor", json={
-        "resume_text": "Resume", "job_description": "Job",
-    })
+    client.post(
+        "/api/resume/tailor",
+        json={
+            "resume_text": "Resume",
+            "job_description": "Job",
+        },
+    )
 
     response = client.get("/api/resume/tailored")
     assert response.status_code == 200
@@ -2121,13 +2565,17 @@ print("\n=== Feature 9: Alerts ===")
 def test_alert_subscribe():
     from fastapi.testclient import TestClient
     from jobpilot.web.app import app
+
     client = TestClient(app)
 
-    response = client.post("/api/alerts/subscribe", json={
-        "role": "Python Developer",
-        "location": "Remote",
-        "frequency": "daily",
-    })
+    response = client.post(
+        "/api/alerts/subscribe",
+        json={
+            "role": "Python Developer",
+            "location": "Remote",
+            "frequency": "daily",
+        },
+    )
     assert response.status_code == 200
     assert response.json()["created"] is True
     assert response.json()["id"] > 0
@@ -2139,6 +2587,7 @@ test("Alerts: subscribe", test_alert_subscribe)
 def test_alert_unsubscribe():
     from fastapi.testclient import TestClient
     from jobpilot.web.app import app
+
     client = TestClient(app)
 
     resp = client.post("/api/alerts/subscribe", json={"role": "Dev"})
@@ -2154,6 +2603,7 @@ test("Alerts: unsubscribe", test_alert_unsubscribe)
 def test_alert_preferences():
     from fastapi.testclient import TestClient
     from jobpilot.web.app import app
+
     client = TestClient(app)
 
     client.post("/api/alerts/subscribe", json={"role": "Test"})
@@ -2169,6 +2619,7 @@ test("Alerts: preferences", test_alert_preferences)
 def test_alert_update():
     from fastapi.testclient import TestClient
     from jobpilot.web.app import app
+
     client = TestClient(app)
 
     resp = client.post("/api/alerts/subscribe", json={"role": "Dev"})
@@ -2184,6 +2635,7 @@ test("Alerts: update", test_alert_update)
 def test_alert_delete():
     from fastapi.testclient import TestClient
     from jobpilot.web.app import app
+
     client = TestClient(app)
 
     resp = client.post("/api/alerts/subscribe", json={"role": "Dev"})
@@ -2236,6 +2688,7 @@ print("\n=== Feature 10: Dashboard Analytics ===")
 def test_analytics_total_counts():
     from fastapi.testclient import TestClient
     from jobpilot.web.app import app
+
     client = TestClient(app)
 
     response = client.get("/api/dashboard/stats")
@@ -2251,6 +2704,7 @@ test("Analytics: total counts", test_analytics_total_counts)
 def test_analytics_summary():
     from fastapi.testclient import TestClient
     from jobpilot.web.app import app
+
     client = TestClient(app)
 
     response = client.get("/api/dashboard/summary")
@@ -2266,6 +2720,7 @@ test("Analytics: summary", test_analytics_summary)
 def test_analytics_timeline():
     from fastapi.testclient import TestClient
     from jobpilot.web.app import app
+
     client = TestClient(app)
 
     response = client.get("/api/dashboard/timeline")
@@ -2280,6 +2735,7 @@ test("Analytics: timeline", test_analytics_timeline)
 def test_analytics_skills():
     from fastapi.testclient import TestClient
     from jobpilot.web.app import app
+
     client = TestClient(app)
 
     response = client.get("/api/dashboard/skills")
@@ -2312,30 +2768,38 @@ print("\n=== New Job Detection & Smart Alerts ===")
 
 def test_job_hash_computation():
     from jobpilot.database import compute_job_hash
+
     h1 = compute_job_hash("Google", "Engineer", "https://example.com/1")
     h2 = compute_job_hash("Google", "Engineer", "https://example.com/1")
     h3 = compute_job_hash("Google", "Engineer", "https://example.com/2")
     assert h1 == h2, "Same inputs should produce same hash"
     assert h1 != h3, "Different URL should produce different hash"
 
+
 test("DB: job hash computation", test_job_hash_computation)
 
 
 def test_upsert_job_new():
     cleanup()
-    j = JobListing(company="TestCo", title="Python Dev", url="https://test.com/1", source="test")
+    j = JobListing(
+        company="TestCo", title="Python Dev", url="https://test.com/1", source="test"
+    )
     is_new = db.upsert_job(j, TEST_DB)
     assert is_new is True
+
 
 test("DB: upsert job new", test_upsert_job_new)
 
 
 def test_upsert_job_existing():
     cleanup()
-    j = JobListing(company="TestCo", title="Python Dev", url="https://test.com/1", source="test")
+    j = JobListing(
+        company="TestCo", title="Python Dev", url="https://test.com/1", source="test"
+    )
     db.upsert_job(j, TEST_DB)
     is_new = db.upsert_job(j, TEST_DB)
     assert is_new is False
+
 
 test("DB: upsert job existing", test_upsert_job_existing)
 
@@ -2343,6 +2807,7 @@ test("DB: upsert job existing", test_upsert_job_existing)
 def test_is_active_default():
     j = JobListing(company="TestCo", title="Dev", url="https://test.com")
     assert j.is_active is True
+
 
 test("Model: is_active default", test_is_active_default)
 
@@ -2355,6 +2820,7 @@ def test_deactivate_job():
     assert result is True
     retrieved = db.get_job(j.id, TEST_DB)
     assert retrieved.is_active is False
+
 
 test("DB: deactivate job", test_deactivate_job)
 
@@ -2369,6 +2835,7 @@ def test_activate_job():
     retrieved = db.get_job(j.id, TEST_DB)
     assert retrieved.is_active is True
 
+
 test("DB: activate job", test_activate_job)
 
 
@@ -2379,17 +2846,23 @@ def test_check_job_exists():
     db.upsert_job(j, TEST_DB)
     assert db.check_job_exists(j.id, TEST_DB) is True
 
+
 test("DB: check job exists", test_check_job_exists)
 
 
 def test_get_new_jobs():
     cleanup()
-    j1 = JobListing(company="TestCo", title="Dev1", url="https://test.com/1", source="test")
-    j2 = JobListing(company="TestCo", title="Dev2", url="https://test.com/2", source="test")
+    j1 = JobListing(
+        company="TestCo", title="Dev1", url="https://test.com/1", source="test"
+    )
+    j2 = JobListing(
+        company="TestCo", title="Dev2", url="https://test.com/2", source="test"
+    )
     db.upsert_job(j1, TEST_DB)
     new_jobs = db.get_new_jobs([j1, j2], TEST_DB)
     assert len(new_jobs) == 1
     assert new_jobs[0].id == j2.id
+
 
 test("DB: get new jobs", test_get_new_jobs)
 
@@ -2398,8 +2871,11 @@ def test_create_notification():
     cleanup()
     j = JobListing(company="TestCo", title="Dev", url="https://test.com", source="test")
     db.upsert_job(j, TEST_DB)
-    notif_id = db.create_job_notification(j.id, "new_match", "New job found!", 0.85, TEST_DB)
+    notif_id = db.create_job_notification(
+        j.id, "new_match", "New job found!", 0.85, TEST_DB
+    )
     assert notif_id > 0
+
 
 test("DB: create notification", test_create_notification)
 
@@ -2413,6 +2889,7 @@ def test_get_notifications():
     assert len(notifs) == 1
     assert notifs[0]["message"] == "Test message"
 
+
 test("DB: get notifications", test_get_notifications)
 
 
@@ -2425,6 +2902,7 @@ def test_mark_notification_read():
     assert result is True
     notifs = db.get_job_notifications(is_read=False, db_path=TEST_DB)
     assert len(notifs) == 0
+
 
 test("DB: mark notification read", test_mark_notification_read)
 
@@ -2440,6 +2918,7 @@ def test_mark_all_notifications_read():
     unread = db.get_unread_notification_count(TEST_DB)
     assert unread == 0
 
+
 test("DB: mark all notifications read", test_mark_all_notifications_read)
 
 
@@ -2451,13 +2930,17 @@ def test_has_been_notified():
     db.create_job_notification(j.id, "new_match", "Test", 0.85, TEST_DB)
     assert db.has_been_notified(j.id, TEST_DB) is True
 
+
 test("DB: has been notified", test_has_been_notified)
 
 
 def test_save_scan_history():
     cleanup()
-    hist_id = db.save_scan_history("greenhouse", "python", "remote", 50, 10, 2.5, TEST_DB)
+    hist_id = db.save_scan_history(
+        "greenhouse", "python", "remote", 50, 10, 2.5, TEST_DB
+    )
     assert hist_id > 0
+
 
 test("DB: save scan history", test_save_scan_history)
 
@@ -2468,6 +2951,7 @@ def test_get_scan_history():
     db.save_scan_history("remoteok", "react", "", 30, 5, 1.2, TEST_DB)
     history = db.get_scan_history(db_path=TEST_DB)
     assert len(history) == 2
+
 
 test("DB: get scan history", test_get_scan_history)
 
@@ -2481,30 +2965,46 @@ def test_get_scan_stats():
     assert stats["total_jobs_found"] == 150
     assert stats["total_new_jobs"] == 30
 
+
 test("DB: scan stats", test_get_scan_stats)
 
 
 def test_top_hiring_companies():
     cleanup()
     for i in range(3):
-        j = JobListing(company="BigCo", title=f"Dev{i}", url=f"https://test.com/{i}", source="test")
+        j = JobListing(
+            company="BigCo", title=f"Dev{i}", url=f"https://test.com/{i}", source="test"
+        )
         db.upsert_job(j, TEST_DB)
-    j2 = JobListing(company="SmallCo", title="Dev", url="https://test.com/small", source="test")
+    j2 = JobListing(
+        company="SmallCo", title="Dev", url="https://test.com/small", source="test"
+    )
     db.upsert_job(j2, TEST_DB)
     top = db.get_top_hiring_companies(5, TEST_DB)
     assert len(top) >= 1
     assert top[0]["company"] == "BigCo"
     assert top[0]["job_count"] == 3
 
+
 test("DB: top hiring companies", test_top_hiring_companies)
 
 
 def test_most_frequent_skills():
     cleanup()
-    j1 = JobListing(company="Co", title="Dev1", url="https://t.com/1", source="test",
-                    required_skills=["python", "django", "postgresql"])
-    j2 = JobListing(company="Co", title="Dev2", url="https://t.com/2", source="test",
-                    required_skills=["python", "react", "docker"])
+    j1 = JobListing(
+        company="Co",
+        title="Dev1",
+        url="https://t.com/1",
+        source="test",
+        required_skills=["python", "django", "postgresql"],
+    )
+    j2 = JobListing(
+        company="Co",
+        title="Dev2",
+        url="https://t.com/2",
+        source="test",
+        required_skills=["python", "react", "docker"],
+    )
     db.upsert_job(j1, TEST_DB)
     db.upsert_job(j2, TEST_DB)
     skills = db.get_most_frequent_skills(5, TEST_DB)
@@ -2512,13 +3012,16 @@ def test_most_frequent_skills():
     assert skills[0]["skill"] == "python"
     assert skills[0]["count"] == 2
 
+
 test("DB: most frequent skills", test_most_frequent_skills)
 
 
 def test_jobs_by_source():
     cleanup()
     for i in range(3):
-        j = JobListing(company="Co", title=f"Dev{i}", url=f"https://t.com/{i}", source="greenhouse")
+        j = JobListing(
+            company="Co", title=f"Dev{i}", url=f"https://t.com/{i}", source="greenhouse"
+        )
         db.upsert_job(j, TEST_DB)
     j2 = JobListing(company="Co", title="Dev", url="https://t.com/x", source="remoteok")
     db.upsert_job(j2, TEST_DB)
@@ -2528,17 +3031,21 @@ def test_jobs_by_source():
     assert gh is not None
     assert gh["job_count"] == 3
 
+
 test("DB: jobs by source", test_jobs_by_source)
 
 
 def test_notification_with_company_info():
     cleanup()
-    j = JobListing(company="TestCo", title="Python Dev", url="https://test.com", source="test")
+    j = JobListing(
+        company="TestCo", title="Python Dev", url="https://test.com", source="test"
+    )
     db.upsert_job(j, TEST_DB)
     db.create_job_notification(j.id, "new_match", "Found!", 0.9, TEST_DB)
     notifs = db.get_job_notifications(db_path=TEST_DB)
     assert notifs[0]["company"] == "TestCo"
     assert notifs[0]["title"] == "Python Dev"
+
 
 test("DB: notification with company info", test_notification_with_company_info)
 
@@ -2550,13 +3057,19 @@ print("\n=== Job Scanner ===")
 def test_job_scanner_new_jobs():
     cleanup()
     from jobpilot.job_scanner import JobScanner
+
     scanner = JobScanner(db_path=TEST_DB)
     jobs = [
-        JobListing(company="NewCo", title="Dev1", url="https://new.com/1", source="test"),
-        JobListing(company="NewCo", title="Dev2", url="https://new.com/2", source="test"),
+        JobListing(
+            company="NewCo", title="Dev1", url="https://new.com/1", source="test"
+        ),
+        JobListing(
+            company="NewCo", title="Dev2", url="https://new.com/2", source="test"
+        ),
     ]
     new_jobs = db.get_new_jobs(jobs, TEST_DB)
     assert len(new_jobs) == 2
+
 
 test("Scanner: new jobs detection", test_job_scanner_new_jobs)
 
@@ -2574,6 +3087,7 @@ def test_job_scanner_dedup():
     assert len(new_jobs) == 1
     assert new_jobs[0].company == "NewCo"
 
+
 test("Scanner: deduplication", test_job_scanner_dedup)
 
 
@@ -2581,13 +3095,21 @@ def test_job_scanner_format_notification():
     cleanup()
     from jobpilot.job_scanner import JobScanner
     from jobpilot.models import MatchResult
+
     scanner = JobScanner(db_path=TEST_DB)
-    job = JobListing(company="TestCo", title="Python Dev", url="https://test.com", location="Remote", source="test")
+    job = JobListing(
+        company="TestCo",
+        title="Python Dev",
+        url="https://test.com",
+        location="Remote",
+        source="test",
+    )
     match = MatchResult(overall_score=0.85)
     msg = scanner._format_notification(job, match)
     assert "Python Dev" in msg
     assert "TestCo" in msg
     assert "85%" in msg
+
 
 test("Scanner: format notification", test_job_scanner_format_notification)
 
@@ -2596,11 +3118,18 @@ def test_job_scanner_alert_match_role():
     cleanup()
     from jobpilot.job_scanner import JobScanner
     from jobpilot.models import AlertSubscription, MatchResult
+
     scanner = JobScanner(db_path=TEST_DB)
-    job = JobListing(company="TestCo", title="Python Developer", description="We need a Python developer", source="test")
+    job = JobListing(
+        company="TestCo",
+        title="Python Developer",
+        description="We need a Python developer",
+        source="test",
+    )
     alert = AlertSubscription(role="python")
     match = MatchResult(overall_score=0.5)
     assert scanner._job_matches_alert(job, alert, match) is True
+
 
 test("Scanner: alert match role", test_job_scanner_alert_match_role)
 
@@ -2609,13 +3138,19 @@ def test_job_scanner_alert_match_remote():
     cleanup()
     from jobpilot.job_scanner import JobScanner
     from jobpilot.models import AlertSubscription, MatchResult
+
     scanner = JobScanner(db_path=TEST_DB)
-    job_remote = JobListing(company="Co", title="Dev", remote_status="remote", source="test")
-    job_onsite = JobListing(company="Co", title="Dev", remote_status="onsite", source="test")
+    job_remote = JobListing(
+        company="Co", title="Dev", remote_status="remote", source="test"
+    )
+    job_onsite = JobListing(
+        company="Co", title="Dev", remote_status="onsite", source="test"
+    )
     alert = AlertSubscription(remote_only=True)
     match = MatchResult(overall_score=0.5)
     assert scanner._job_matches_alert(job_remote, alert, match) is True
     assert scanner._job_matches_alert(job_onsite, alert, match) is False
+
 
 test("Scanner: alert match remote", test_job_scanner_alert_match_remote)
 
@@ -2624,6 +3159,7 @@ def test_job_scanner_alert_match_location():
     cleanup()
     from jobpilot.job_scanner import JobScanner
     from jobpilot.models import AlertSubscription, MatchResult
+
     scanner = JobScanner(db_path=TEST_DB)
     job = JobListing(company="Co", title="Dev", location="San Francisco", source="test")
     alert = AlertSubscription(location="San Francisco")
@@ -2632,6 +3168,7 @@ def test_job_scanner_alert_match_location():
     alert2 = AlertSubscription(location="New York")
     assert scanner._job_matches_alert(job, alert2, match) is False
 
+
 test("Scanner: alert match location", test_job_scanner_alert_match_location)
 
 
@@ -2639,6 +3176,7 @@ def test_job_scanner_alert_match_score():
     cleanup()
     from jobpilot.job_scanner import JobScanner
     from jobpilot.models import AlertSubscription, MatchResult
+
     scanner = JobScanner(db_path=TEST_DB)
     job = JobListing(company="Co", title="Dev", source="test")
     alert = AlertSubscription()
@@ -2647,18 +3185,26 @@ def test_job_scanner_alert_match_score():
     assert scanner._job_matches_alert(job, alert, match_low) is False
     assert scanner._job_matches_alert(job, alert, match_high) is True
 
+
 test("Scanner: alert match minimum score", test_job_scanner_alert_match_score)
 
 
 def test_deactivate_stale_jobs():
     cleanup()
     from jobpilot.job_scanner import JobScanner
-    j = JobListing(company="StaleCo", title="Dev", url="https://stale.com", source="test",
-                   discovered_at="2020-01-01T00:00:00")
+
+    j = JobListing(
+        company="StaleCo",
+        title="Dev",
+        url="https://stale.com",
+        source="test",
+        discovered_at="2020-01-01T00:00:00",
+    )
     db.upsert_job(j, TEST_DB)
     scanner = JobScanner(db_path=TEST_DB)
     count = scanner.deactivate_stale_jobs(max_age_days=30)
     assert count >= 1
+
 
 test("Scanner: deactivate stale jobs", test_deactivate_stale_jobs)
 
@@ -2666,11 +3212,13 @@ test("Scanner: deactivate stale jobs", test_deactivate_stale_jobs)
 def test_get_scan_summary():
     cleanup()
     from jobpilot.job_scanner import JobScanner
+
     scanner = JobScanner(db_path=TEST_DB)
     summary = scanner.get_scan_summary()
     assert "scan_stats" in summary
     assert "jobs_discovered_today" in summary
     assert "top_hiring_companies" in summary
+
 
 test("Scanner: get scan summary", test_get_scan_summary)
 
@@ -2682,10 +3230,21 @@ print("\n=== Recommendation Engine ===")
 def test_recommend_engine_skills():
     cleanup()
     from jobpilot.recommendation_engine import RecommendationEngine
-    j1 = JobListing(company="Co", title="Dev1", url="https://t.com/1", source="test",
-                    required_skills=["python", "docker", "kubernetes"])
-    j2 = JobListing(company="Co", title="Dev2", url="https://t.com/2", source="test",
-                    required_skills=["python", "react", "aws"])
+
+    j1 = JobListing(
+        company="Co",
+        title="Dev1",
+        url="https://t.com/1",
+        source="test",
+        required_skills=["python", "docker", "kubernetes"],
+    )
+    j2 = JobListing(
+        company="Co",
+        title="Dev2",
+        url="https://t.com/2",
+        source="test",
+        required_skills=["python", "react", "aws"],
+    )
     db.upsert_job(j1, TEST_DB)
     db.upsert_job(j2, TEST_DB)
     engine = RecommendationEngine(db_path=TEST_DB)
@@ -2695,14 +3254,22 @@ def test_recommend_engine_skills():
     skill_names = [s["skill"] for s in skills]
     assert "python" not in skill_names
 
+
 test("Engine: skill recommendations", test_recommend_engine_skills)
 
 
 def test_recommend_engine_companies():
     cleanup()
     from jobpilot.recommendation_engine import RecommendationEngine
+
     db.upsert_company(Company(name="BigTech", industry="Tech"), TEST_DB)
-    j = JobListing(company="BigTech", title="Dev", url="https://t.com/1", source="test", required_skills=["python"])
+    j = JobListing(
+        company="BigTech",
+        title="Dev",
+        url="https://t.com/1",
+        source="test",
+        required_skills=["python"],
+    )
     db.upsert_job(j, TEST_DB)
     engine = RecommendationEngine(db_path=TEST_DB)
     profile = UserProfile(skills=["python"])
@@ -2710,14 +3277,21 @@ def test_recommend_engine_companies():
     assert len(companies) >= 1
     assert companies[0]["company"] == "BigTech"
 
+
 test("Engine: company recommendations", test_recommend_engine_companies)
 
 
 def test_recommend_engine_certifications():
     cleanup()
     from jobpilot.recommendation_engine import RecommendationEngine
-    j = JobListing(company="Co", title="Dev", url="https://t.com/1", source="test",
-                   required_skills=["aws", "kubernetes"])
+
+    j = JobListing(
+        company="Co",
+        title="Dev",
+        url="https://t.com/1",
+        source="test",
+        required_skills=["aws", "kubernetes"],
+    )
     db.upsert_job(j, TEST_DB)
     engine = RecommendationEngine(db_path=TEST_DB)
     profile = UserProfile(skills=["python"])
@@ -2726,18 +3300,21 @@ def test_recommend_engine_certifications():
     cert_names = [c["certification"] for c in certs]
     assert any("AWS" in name for name in cert_names)
 
+
 test("Engine: certification recommendations", test_recommend_engine_certifications)
 
 
 def test_recommend_engine_empty():
     cleanup()
     from jobpilot.recommendation_engine import RecommendationEngine
+
     engine = RecommendationEngine(db_path=TEST_DB)
     recs = engine.get_recommendations()
     assert "recommended_jobs" in recs
     assert "recommended_skills" in recs
     assert "recommended_companies" in recs
     assert "recommended_certifications" in recs
+
 
 test("Engine: empty database recommendations", test_recommend_engine_empty)
 
@@ -2749,6 +3326,7 @@ print("\n=== Enhanced Dashboard API ===")
 def test_enhanced_dashboard():
     from fastapi.testclient import TestClient
     from jobpilot.web.app import app
+
     client = TestClient(app)
     response = client.get("/api/dashboard/enhanced")
     assert response.status_code == 200
@@ -2757,16 +3335,19 @@ def test_enhanced_dashboard():
     assert "jobs_discovered_today" in data
     assert "top_hiring_companies" in data
 
+
 test("API: enhanced dashboard", test_enhanced_dashboard)
 
 
 def test_notifications_api():
     from fastapi.testclient import TestClient
     from jobpilot.web.app import app
+
     client = TestClient(app)
     response = client.get("/api/notifications")
     assert response.status_code == 200
     assert "notifications" in response.json()
+
 
 test("API: notifications list", test_notifications_api)
 
@@ -2774,10 +3355,12 @@ test("API: notifications list", test_notifications_api)
 def test_unread_count_api():
     from fastapi.testclient import TestClient
     from jobpilot.web.app import app
+
     client = TestClient(app)
     response = client.get("/api/notifications/unread-count")
     assert response.status_code == 200
     assert "unread_count" in response.json()
+
 
 test("API: unread count", test_unread_count_api)
 
@@ -2785,10 +3368,12 @@ test("API: unread count", test_unread_count_api)
 def test_trending_skills_api():
     from fastapi.testclient import TestClient
     from jobpilot.web.app import app
+
     client = TestClient(app)
     response = client.get("/api/trending/skills")
     assert response.status_code == 200
     assert "skills" in response.json()
+
 
 test("API: trending skills", test_trending_skills_api)
 
@@ -2796,10 +3381,12 @@ test("API: trending skills", test_trending_skills_api)
 def test_trending_companies_api():
     from fastapi.testclient import TestClient
     from jobpilot.web.app import app
+
     client = TestClient(app)
     response = client.get("/api/trending/companies")
     assert response.status_code == 200
     assert "companies" in response.json()
+
 
 test("API: trending companies", test_trending_companies_api)
 
@@ -2807,10 +3394,12 @@ test("API: trending companies", test_trending_companies_api)
 def test_jobs_by_source_api():
     from fastapi.testclient import TestClient
     from jobpilot.web.app import app
+
     client = TestClient(app)
     response = client.get("/api/trending/sources")
     assert response.status_code == 200
     assert "sources" in response.json()
+
 
 test("API: jobs by source", test_jobs_by_source_api)
 
@@ -2818,6 +3407,7 @@ test("API: jobs by source", test_jobs_by_source_api)
 def test_recommendations_api():
     from fastapi.testclient import TestClient
     from jobpilot.web.app import app
+
     client = TestClient(app)
     response = client.get("/api/recommendations")
     assert response.status_code == 200
@@ -2825,16 +3415,19 @@ def test_recommendations_api():
     assert "recommended_jobs" in data
     assert "recommended_skills" in data
 
+
 test("API: recommendations", test_recommendations_api)
 
 
 def test_scan_history_api():
     from fastapi.testclient import TestClient
     from jobpilot.web.app import app
+
     client = TestClient(app)
     response = client.get("/api/scan/history")
     assert response.status_code == 200
     assert "history" in response.json()
+
 
 test("API: scan history", test_scan_history_api)
 
@@ -2842,10 +3435,12 @@ test("API: scan history", test_scan_history_api)
 def test_scan_stats_api():
     from fastapi.testclient import TestClient
     from jobpilot.web.app import app
+
     client = TestClient(app)
     response = client.get("/api/scan/stats")
     assert response.status_code == 200
     assert "total_scans" in response.json()
+
 
 test("API: scan stats", test_scan_stats_api)
 
@@ -2853,17 +3448,25 @@ test("API: scan stats", test_scan_stats_api)
 def test_smart_scan_api():
     from fastapi.testclient import TestClient
     from jobpilot.web.app import app
+
     client = TestClient(app)
-    with patch('jobpilot.job_scanner.JobScanner.scan_all_sources') as mock_scan:
+    with patch("jobpilot.job_scanner.JobScanner.scan_all_sources") as mock_scan:
         mock_scan.return_value = {
-            "sources_scanned": 2, "total_jobs_found": 50, "total_new_jobs": 10,
-            "new_jobs": [], "notifications_created": 2, "duration": 1.5,
-            "source_results": [{"source": "greenhouse", "found": 30, "new": 5},
-                               {"source": "remoteok", "found": 20, "new": 5}],
+            "sources_scanned": 2,
+            "total_jobs_found": 50,
+            "total_new_jobs": 10,
+            "new_jobs": [],
+            "notifications_created": 2,
+            "duration": 1.5,
+            "source_results": [
+                {"source": "greenhouse", "found": 30, "new": 5},
+                {"source": "remoteok", "found": 20, "new": 5},
+            ],
         }
         response = client.post("/api/scan/smart", json={"source": "all"})
         assert response.status_code == 200
         assert response.json()["total_jobs_found"] == 50
+
 
 test("API: smart scan", test_smart_scan_api)
 
@@ -2871,10 +3474,12 @@ test("API: smart scan", test_smart_scan_api)
 def test_jobs_new_today_api():
     from fastapi.testclient import TestClient
     from jobpilot.web.app import app
+
     client = TestClient(app)
     response = client.get("/api/jobs/new/today")
     assert response.status_code == 200
     assert "jobs" in response.json()
+
 
 test("API: jobs new today", test_jobs_new_today_api)
 
@@ -2882,10 +3487,12 @@ test("API: jobs new today", test_jobs_new_today_api)
 def test_jobs_new_week_api():
     from fastapi.testclient import TestClient
     from jobpilot.web.app import app
+
     client = TestClient(app)
     response = client.get("/api/jobs/new/week")
     assert response.status_code == 200
     assert "jobs" in response.json()
+
 
 test("API: jobs new week", test_jobs_new_week_api)
 
@@ -2893,10 +3500,12 @@ test("API: jobs new week", test_jobs_new_week_api)
 def test_jobs_high_match_api():
     from fastapi.testclient import TestClient
     from jobpilot.web.app import app
+
     client = TestClient(app)
     response = client.get("/api/jobs/high-match")
     assert response.status_code == 200
     assert "jobs" in response.json()
+
 
 test("API: jobs high match", test_jobs_high_match_api)
 
@@ -2904,13 +3513,17 @@ test("API: jobs high match", test_jobs_high_match_api)
 def test_activate_deactivate_job_api():
     from fastapi.testclient import TestClient
     from jobpilot.web.app import app
+
     client = TestClient(app)
-    j = JobListing(company="TestCo", title="Dev", url="https://test.com/api", source="test")
+    j = JobListing(
+        company="TestCo", title="Dev", url="https://test.com/api", source="test"
+    )
     db.upsert_job(j, TEST_DB)
     response = client.post(f"/api/jobs/{j.id}/deactivate")
     assert response.status_code == 200
     response = client.post(f"/api/jobs/{j.id}/activate")
     assert response.status_code == 200
+
 
 test("API: activate/deactivate job", test_activate_deactivate_job_api)
 
@@ -2924,12 +3537,16 @@ print("\n=== Job Import ===")
 def test_import_job_url():
     from fastapi.testclient import TestClient
     from jobpilot.web.app import app
+
     client = TestClient(app)
 
     # Test with a valid URL (will fail to fetch in test environment, but tests the endpoint)
-    response = client.post("/api/jobs/import", json={"url": "https://www.linkedin.com/jobs/view/test"})
+    response = client.post(
+        "/api/jobs/import", json={"url": "https://www.linkedin.com/jobs/view/test"}
+    )
     # Should return error since we can't fetch in test environment
     assert response.status_code in [200, 400]
+
 
 test("API: import job URL endpoint", test_import_job_url)
 
@@ -2937,27 +3554,36 @@ test("API: import job URL endpoint", test_import_job_url)
 def test_import_job_invalid_url():
     from fastapi.testclient import TestClient
     from jobpilot.web.app import app
+
     client = TestClient(app)
 
     response = client.post("/api/jobs/import", json={"url": ""})
     assert response.status_code == 400
+
 
 test("API: import job invalid URL", test_import_job_invalid_url)
 
 
 def test_job_importer_source_detection():
     from jobpilot.job_importer import JobImporter
+
     importer = JobImporter()
 
-    assert importer._detect_source("https://www.linkedin.com/jobs/view/123") == "linkedin"
+    assert (
+        importer._detect_source("https://www.linkedin.com/jobs/view/123") == "linkedin"
+    )
     assert importer._detect_source("https://www.naukri.com/job/123") == "naukri"
     assert importer._detect_source("https://www.indeed.com/viewjob?jk=123") == "indeed"
-    assert importer._detect_source("https://www.glassdoor.com/job/listing/123") == "glassdoor"
+    assert (
+        importer._detect_source("https://www.glassdoor.com/job/listing/123")
+        == "glassdoor"
+    )
     assert importer._detect_source("https://wellfound.com/role/123") == "wellfound"
     assert importer._detect_source("https://boards.greenhouse.io/123") == "greenhouse"
     assert importer._detect_source("https://jobs.lever.co/123") == "lever"
     assert importer._detect_source("https://jobs.ashbyhq.com/123") == "ashby"
     assert importer._detect_source("https://example.com/job/123") == "generic"
+
 
 test("Job Importer: source detection", test_job_importer_source_detection)
 
@@ -2972,19 +3598,20 @@ def test_register_user():
     from fastapi.testclient import TestClient
     from jobpilot.web.app import app
     import uuid
+
     client = TestClient(app)
 
     unique_email = f"test_{uuid.uuid4().hex[:8]}@example.com"
-    response = client.post("/api/auth/register", json={
-        "email": unique_email,
-        "password": "TestPass123!",
-        "name": "Test User"
-    })
+    response = client.post(
+        "/api/auth/register",
+        json={"email": unique_email, "password": "TestPass123!", "name": "Test User"},
+    )
     assert response.status_code == 200
     data = response.json()
     assert data["email"] == unique_email
     assert data["name"] == "Test User"
     assert "id" in data
+
 
 test("Auth: register user", test_register_user)
 
@@ -2992,19 +3619,27 @@ test("Auth: register user", test_register_user)
 def test_register_duplicate_email():
     from fastapi.testclient import TestClient
     from jobpilot.web.app import app
+
     client = TestClient(app)
 
-    client.post("/api/auth/register", json={
-        "email": "dup@example.com",
-        "password": "TestPass123!",
-        "name": "First User"
-    })
-    response = client.post("/api/auth/register", json={
-        "email": "dup@example.com",
-        "password": "TestPass123!",
-        "name": "Second User"
-    })
+    client.post(
+        "/api/auth/register",
+        json={
+            "email": "dup@example.com",
+            "password": "TestPass123!",
+            "name": "First User",
+        },
+    )
+    response = client.post(
+        "/api/auth/register",
+        json={
+            "email": "dup@example.com",
+            "password": "TestPass123!",
+            "name": "Second User",
+        },
+    )
     assert response.status_code == 400
+
 
 test("Auth: duplicate email rejected", test_register_duplicate_email)
 
@@ -3012,22 +3647,27 @@ test("Auth: duplicate email rejected", test_register_duplicate_email)
 def test_login_user():
     from fastapi.testclient import TestClient
     from jobpilot.web.app import app
+
     client = TestClient(app)
 
-    client.post("/api/auth/register", json={
-        "email": "login@example.com",
-        "password": "TestPass123!",
-        "name": "Login User"
-    })
+    client.post(
+        "/api/auth/register",
+        json={
+            "email": "login@example.com",
+            "password": "TestPass123!",
+            "name": "Login User",
+        },
+    )
 
-    response = client.post("/api/auth/login", data={
-        "username": "login@example.com",
-        "password": "TestPass123!"
-    })
+    response = client.post(
+        "/api/auth/login",
+        data={"username": "login@example.com", "password": "TestPass123!"},
+    )
     assert response.status_code == 200
     data = response.json()
     assert "access_token" in data
     assert "refresh_token" in data
+
 
 test("Auth: login user", test_login_user)
 
@@ -3035,19 +3675,24 @@ test("Auth: login user", test_login_user)
 def test_login_wrong_password():
     from fastapi.testclient import TestClient
     from jobpilot.web.app import app
+
     client = TestClient(app)
 
-    client.post("/api/auth/register", json={
-        "email": "wrong@example.com",
-        "password": "TestPass123!",
-        "name": "Wrong User"
-    })
+    client.post(
+        "/api/auth/register",
+        json={
+            "email": "wrong@example.com",
+            "password": "TestPass123!",
+            "name": "Wrong User",
+        },
+    )
 
-    response = client.post("/api/auth/login", data={
-        "username": "wrong@example.com",
-        "password": "WrongPassword123!"
-    })
+    response = client.post(
+        "/api/auth/login",
+        data={"username": "wrong@example.com", "password": "WrongPassword123!"},
+    )
     assert response.status_code == 401
+
 
 test("Auth: wrong password rejected", test_login_wrong_password)
 
@@ -3055,10 +3700,12 @@ test("Auth: wrong password rejected", test_login_wrong_password)
 def test_protected_route():
     from fastapi.testclient import TestClient
     from jobpilot.web.app import app
+
     client = TestClient(app)
 
     response = client.get("/api/auth/me")
     assert response.status_code == 401
+
 
 test("Auth: protected route requires token", test_protected_route)
 
@@ -3066,25 +3713,24 @@ test("Auth: protected route requires token", test_protected_route)
 def test_get_me_with_token():
     from fastapi.testclient import TestClient
     from jobpilot.web.app import app
+
     client = TestClient(app)
 
-    client.post("/api/auth/register", json={
-        "email": "me@example.com",
-        "password": "TestPass123!",
-        "name": "Me User"
-    })
+    client.post(
+        "/api/auth/register",
+        json={"email": "me@example.com", "password": "TestPass123!", "name": "Me User"},
+    )
 
-    login_response = client.post("/api/auth/login", data={
-        "username": "me@example.com",
-        "password": "TestPass123!"
-    })
+    login_response = client.post(
+        "/api/auth/login",
+        data={"username": "me@example.com", "password": "TestPass123!"},
+    )
     token = login_response.json()["access_token"]
 
-    response = client.get("/api/auth/me", headers={
-        "Authorization": f"Bearer {token}"
-    })
+    response = client.get("/api/auth/me", headers={"Authorization": f"Bearer {token}"})
     assert response.status_code == 200
     assert response.json()["email"] == "me@example.com"
+
 
 test("Auth: get me with token", test_get_me_with_token)
 
@@ -3092,23 +3738,28 @@ test("Auth: get me with token", test_get_me_with_token)
 def test_refresh_token():
     from fastapi.testclient import TestClient
     from jobpilot.web.app import app
+
     client = TestClient(app)
 
-    client.post("/api/auth/register", json={
-        "email": "refresh@example.com",
-        "password": "TestPass123!",
-        "name": "Refresh User"
-    })
+    client.post(
+        "/api/auth/register",
+        json={
+            "email": "refresh@example.com",
+            "password": "TestPass123!",
+            "name": "Refresh User",
+        },
+    )
 
-    login_response = client.post("/api/auth/login", data={
-        "username": "refresh@example.com",
-        "password": "TestPass123!"
-    })
+    login_response = client.post(
+        "/api/auth/login",
+        data={"username": "refresh@example.com", "password": "TestPass123!"},
+    )
     refresh_token = login_response.json()["refresh_token"]
 
     response = client.post(f"/api/auth/refresh?refresh_token={refresh_token}")
     assert response.status_code == 200
     assert "access_token" in response.json()
+
 
 test("Auth: refresh token", test_refresh_token)
 
@@ -3117,26 +3768,27 @@ def test_change_password():
     from fastapi.testclient import TestClient
     from jobpilot.web.app import app
     import uuid
+
     client = TestClient(app)
 
     unique_email = f"changepass_{uuid.uuid4().hex[:8]}@example.com"
-    client.post("/api/auth/register", json={
-        "email": unique_email,
-        "password": "OldPass123!",
-        "name": "Change User"
-    })
+    client.post(
+        "/api/auth/register",
+        json={"email": unique_email, "password": "OldPass123!", "name": "Change User"},
+    )
 
-    login_response = client.post("/api/auth/login", data={
-        "username": unique_email,
-        "password": "OldPass123!"
-    })
+    login_response = client.post(
+        "/api/auth/login", data={"username": unique_email, "password": "OldPass123!"}
+    )
     token = login_response.json()["access_token"]
 
-    response = client.post("/api/auth/change-password", params={
-        "old_password": "OldPass123!",
-        "new_password": "NewPass123!"
-    }, headers={"Authorization": f"Bearer {token}"})
+    response = client.post(
+        "/api/auth/change-password",
+        params={"old_password": "OldPass123!", "new_password": "NewPass123!"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
     assert response.status_code == 200
+
 
 test("Auth: change password", test_change_password)
 
@@ -3159,6 +3811,7 @@ def test_invalid_password_validation():
     is_valid, msg = validate_password("ValidPass123!")
     assert is_valid is True
 
+
 test("Auth: password validation", test_invalid_password_validation)
 
 
@@ -3169,6 +3822,7 @@ def test_email_validation():
     assert validate_email("invalid") is False
     assert validate_email("@example.com") is False
     assert validate_email("test@") is False
+
 
 test("Auth: email validation", test_email_validation)
 
@@ -3185,33 +3839,39 @@ def test_input_sanitization():
     result = sanitize_input("Normal text")
     assert result == "Normal text"
 
+
 test("Auth: input sanitization", test_input_sanitization)
 
 
 def test_admin_stats():
     from fastapi.testclient import TestClient
     from jobpilot.web.app import app
+
     client = TestClient(app)
 
     # Register admin user
-    client.post("/api/auth/register", json={
-        "email": "admin@example.com",
-        "password": "AdminPass123!",
-        "name": "Admin User"
-    })
+    client.post(
+        "/api/auth/register",
+        json={
+            "email": "admin@example.com",
+            "password": "AdminPass123!",
+            "name": "Admin User",
+        },
+    )
 
     # Login
-    login_response = client.post("/api/auth/login", data={
-        "username": "admin@example.com",
-        "password": "AdminPass123!"
-    })
+    login_response = client.post(
+        "/api/auth/login",
+        data={"username": "admin@example.com", "password": "AdminPass123!"},
+    )
     token = login_response.json()["access_token"]
 
     # Try to access admin endpoint (should fail - not admin)
-    response = client.get("/api/admin/stats", headers={
-        "Authorization": f"Bearer {token}"
-    })
+    response = client.get(
+        "/api/admin/stats", headers={"Authorization": f"Bearer {token}"}
+    )
     assert response.status_code == 403
+
 
 test("Auth: admin stats requires admin", test_admin_stats)
 

@@ -5,7 +5,6 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 
-
 # ── Skill database ────────────────────────────────────────────────────────────
 # Comprehensive map of known tech skills grouped by category.
 # Keys are lowercase canonical names; values are common aliases.
@@ -38,7 +37,6 @@ SKILL_DATABASE: dict[str, list[str]] = {
     "css": ["css3", "scss", "sass", "less"],
     "bash": ["shell", "shell scripting", "bash scripting"],
     "powershell": [],
-
     # Frameworks & Libraries
     "react": ["reactjs", "react.js"],
     "react native": [],
@@ -73,7 +71,6 @@ SKILL_DATABASE: dict[str, list[str]] = {
     "hugging face": ["huggingface", "transformers"],
     "langchain": [],
     "llamaindex": ["llama index"],
-
     # DevOps & Cloud
     "aws": ["amazon web services"],
     "gcp": ["google cloud", "google cloud platform"],
@@ -94,7 +91,6 @@ SKILL_DATABASE: dict[str, list[str]] = {
     "grafana": [],
     "elk stack": ["elasticsearch", "logstash", "kibana"],
     "cloudflare": [],
-
     # Databases
     "postgresql": ["postgres", "psql"],
     "mysql": [],
@@ -109,7 +105,6 @@ SKILL_DATABASE: dict[str, list[str]] = {
     "supabase": [],
     "mariadb": [],
     "couchdb": ["couch db"],
-
     # Tools & Platforms
     "git": ["git version control"],
     "github": [],
@@ -123,7 +118,6 @@ SKILL_DATABASE: dict[str, list[str]] = {
     "vscode": ["visual studio code"],
     "vim": [],
     "neovim": [],
-
     # AI / ML
     "machine learning": ["ml"],
     "deep learning": ["dl"],
@@ -144,7 +138,6 @@ SKILL_DATABASE: dict[str, list[str]] = {
     "databricks": [],
     "bigquery": ["big query"],
     "etl": [],
-
     # Soft Skills (detected from context)
     "agile": ["agile methodology", "agile development", "scrum"],
     "leadership": [],
@@ -169,14 +162,39 @@ for canonical, aliases in SKILL_DATABASE.items():
 SECTION_PATTERNS: list[tuple[str, re.Pattern]] = [
     ("contact", re.compile(r"^\b(contact|personal|info)\b", re.I)),
     ("summary", re.compile(r"^\b(summary|objective|profile|about me|about)\b", re.I)),
-    ("experience", re.compile(r"^\b(experience|work experience|employment|work history|professional experience)\b", re.I)),
-    ("education", re.compile(r"^\b(education|academic|qualifications|degrees)\b", re.I)),
-    ("skills", re.compile(r"^\b(skills|technical skills|technologies|competencies|tech stack)\b", re.I)),
-    ("projects", re.compile(r"^\b(projects|personal projects|key projects|side projects)\b", re.I)),
-    ("certifications", re.compile(r"^\b(certifications|certificates|licenses|credentials)\b", re.I)),
+    (
+        "experience",
+        re.compile(
+            r"^\b(experience|work experience|employment|work history|professional experience)\b",
+            re.I,
+        ),
+    ),
+    (
+        "education",
+        re.compile(r"^\b(education|academic|qualifications|degrees)\b", re.I),
+    ),
+    (
+        "skills",
+        re.compile(
+            r"^\b(skills|technical skills|technologies|competencies|tech stack)\b", re.I
+        ),
+    ),
+    (
+        "projects",
+        re.compile(
+            r"^\b(projects|personal projects|key projects|side projects)\b", re.I
+        ),
+    ),
+    (
+        "certifications",
+        re.compile(r"^\b(certifications|certificates|licenses|credentials)\b", re.I),
+    ),
     ("awards", re.compile(r"^\b(awards|achievements|honors|accomplishments)\b", re.I)),
     ("publications", re.compile(r"^\b(publications|papers|articles)\b", re.I)),
-    ("languages", re.compile(r"^\b(languages|spoken languages|foreign languages)\b", re.I)),
+    (
+        "languages",
+        re.compile(r"^\b(languages|spoken languages|foreign languages)\b", re.I),
+    ),
     ("volunteer", re.compile(r"^\b(volunteer|volunteering|community service)\b", re.I)),
     ("interests", re.compile(r"^\b(interests|hobbies)\b", re.I)),
 ]
@@ -249,13 +267,16 @@ def _extract_contact(text: str) -> dict[str, str]:
     github = _GITHUB_RE.findall(text)
     if github:
         contact["github"] = f"https://{github[0]}"
-    urls = [u for u in _URL_RE.findall(text) if "linkedin" not in u and "github" not in u]
+    urls = [
+        u for u in _URL_RE.findall(text) if "linkedin" not in u and "github" not in u
+    ]
     if urls:
         contact["portfolio"] = urls[0]
     return contact
 
 
 # ── Skill extraction ──────────────────────────────────────────────────────────
+
 
 def _extract_skills(text: str) -> list[str]:
     """Extract known skills from resume text."""
@@ -265,7 +286,11 @@ def _extract_skills(text: str) -> list[str]:
     # Check all aliases against the text
     for alias, canonical in _ALIAS_MAP.items():
         # Use word boundary matching to avoid false positives
-        pattern = r"(?:^|[\s,;/\(\)\"'.\-=:+*#@!&])(" + re.escape(alias) + r")(?:$|[\s,;/\(\)\"'.\-=:+*#@!&])"
+        pattern = (
+            r"(?:^|[\s,;/\(\)\"'.\-=:+*#@!&])("
+            + re.escape(alias)
+            + r")(?:$|[\s,;/\(\)\"'.\-=:+*#@!&])"
+        )
         if re.search(pattern, text_lower):
             found.add(canonical)
 
@@ -317,6 +342,7 @@ def _extract_education(sections: dict[str, str]) -> list[str]:
 
 
 # ── ATS scoring ───────────────────────────────────────────────────────────────
+
 
 def _compute_ats_score(
     text: str,
@@ -381,10 +407,28 @@ def _compute_ats_score(
     # 5. Keywords (max 0.15)
     # Check for action verbs and quantifiable results
     action_verbs = [
-        "built", "developed", "implemented", "designed", "led", "managed",
-        "created", "improved", "increased", "reduced", "launched", "deployed",
-        "optimized", "automated", "collaborated", "mentored", "architected",
-        "delivered", "migrated", "scaled", "integrated", "refactored",
+        "built",
+        "developed",
+        "implemented",
+        "designed",
+        "led",
+        "managed",
+        "created",
+        "improved",
+        "increased",
+        "reduced",
+        "launched",
+        "deployed",
+        "optimized",
+        "automated",
+        "collaborated",
+        "mentored",
+        "architected",
+        "delivered",
+        "migrated",
+        "scaled",
+        "integrated",
+        "refactored",
     ]
     verb_count = sum(1 for v in action_verbs if v.lower() in text.lower())
     has_numbers = bool(re.search(r"\d+[%$KkMm]|\$\d+|\d{2,}", text))
@@ -395,6 +439,7 @@ def _compute_ats_score(
 
 
 # ── Improvement suggestions ───────────────────────────────────────────────────
+
 
 def _generate_suggestions(
     sections: dict[str, str],
@@ -408,7 +453,9 @@ def _generate_suggestions(
 
     # Contact
     if "email" not in contact:
-        suggestions.append("Add your email address — recruiters need a way to contact you.")
+        suggestions.append(
+            "Add your email address — recruiters need a way to contact you."
+        )
     if "phone" not in contact:
         suggestions.append("Add your phone number for recruiter callbacks.")
     if "linkedin" not in contact:
@@ -418,54 +465,86 @@ def _generate_suggestions(
 
     # Sections
     if not sections.get("summary"):
-        suggestions.append("Add a professional summary (2-3 lines) at the top to hook recruiters.")
+        suggestions.append(
+            "Add a professional summary (2-3 lines) at the top to hook recruiters."
+        )
     if not sections.get("experience"):
         suggestions.append("Add a work experience section — even internships count.")
     if not sections.get("projects"):
         suggestions.append("Add a projects section to demonstrate hands-on skills.")
     if not sections.get("certifications"):
-        suggestions.append("Consider adding relevant certifications (AWS, Google Cloud, etc.).")
+        suggestions.append(
+            "Consider adding relevant certifications (AWS, Google Cloud, etc.)."
+        )
 
     # Skills
     if len(skills) < 5:
-        suggestions.append(f"Only {len(skills)} skills detected — add more technical skills to pass ATS filters.")
+        suggestions.append(
+            f"Only {len(skills)} skills detected — add more technical skills to pass ATS filters."
+        )
     if len(skills) > 20:
-        suggestions.append("You have many skills listed — consider grouping them by category for readability.")
+        suggestions.append(
+            "You have many skills listed — consider grouping them by category for readability."
+        )
 
     # Experience
     if experience_years == 0:
-        suggestions.append("No clear experience duration found — quantify your years of experience.")
+        suggestions.append(
+            "No clear experience duration found — quantify your years of experience."
+        )
 
     # Text quality
     word_count = len(" ".join(sections.values()).split())
     if word_count < 150:
-        suggestions.append("Resume is very short — expand with more details, achievements, and metrics.")
+        suggestions.append(
+            "Resume is very short — expand with more details, achievements, and metrics."
+        )
     if word_count > 1000:
-        suggestions.append("Resume is very long — aim for 1-2 pages. Remove less relevant content.")
+        suggestions.append(
+            "Resume is very long — aim for 1-2 pages. Remove less relevant content."
+        )
 
     # Action verbs
     action_verbs = [
-        "built", "developed", "implemented", "designed", "led", "managed",
-        "created", "improved", "increased", "reduced", "launched",
+        "built",
+        "developed",
+        "implemented",
+        "designed",
+        "led",
+        "managed",
+        "created",
+        "improved",
+        "increased",
+        "reduced",
+        "launched",
     ]
     text_lower = " ".join(sections.values()).lower()
     verb_count = sum(1 for v in action_verbs if v in text_lower)
     if verb_count < 3:
-        suggestions.append("Use more action verbs (built, designed, led, improved) to describe achievements.")
+        suggestions.append(
+            "Use more action verbs (built, designed, led, improved) to describe achievements."
+        )
 
     # Quantifiable results
-    has_numbers = bool(re.search(r"\d+[%$KkMm]|\$\d+|\d{3,}", " ".join(sections.values())))
+    has_numbers = bool(
+        re.search(r"\d+[%$KkMm]|\$\d+|\d{3,}", " ".join(sections.values()))
+    )
     if not has_numbers:
-        suggestions.append("Add quantifiable results (e.g., 'reduced load time by 40%', 'served 10K users').")
+        suggestions.append(
+            "Add quantifiable results (e.g., 'reduced load time by 40%', 'served 10K users')."
+        )
 
     # ATS warnings
     if ats_score < 0.5:
-        suggestions.append("Your ATS score is low — ensure standard section headings and no tables/columns.")
+        suggestions.append(
+            "Your ATS score is low — ensure standard section headings and no tables/columns."
+        )
 
     return suggestions
 
 
 # ── Strengths & weaknesses ────────────────────────────────────────────────────
+
 
 def _identify_strengths(
     skills: list[str],
@@ -477,20 +556,41 @@ def _identify_strengths(
     strengths: list[str] = []
 
     if len(skills) >= 8:
-        strengths.append(f"Strong technical toolkit with {len(skills)} skills identified.")
+        strengths.append(
+            f"Strong technical toolkit with {len(skills)} skills identified."
+        )
     if experience_years >= 3:
-        strengths.append(f"{experience_years} years of experience — solid professional background.")
+        strengths.append(
+            f"{experience_years} years of experience — solid professional background."
+        )
     if sections.get("projects"):
-        strengths.append("Projects section present — demonstrates practical application of skills.")
+        strengths.append(
+            "Projects section present — demonstrates practical application of skills."
+        )
     if sections.get("certifications"):
-        strengths.append("Certifications listed — shows commitment to professional development.")
+        strengths.append(
+            "Certifications listed — shows commitment to professional development."
+        )
     if contact.get("github"):
-        strengths.append("GitHub profile included — recruiters can verify your code quality.")
+        strengths.append(
+            "GitHub profile included — recruiters can verify your code quality."
+        )
     if contact.get("linkedin"):
-        strengths.append("LinkedIn profile included — strengthens professional presence.")
+        strengths.append(
+            "LinkedIn profile included — strengthens professional presence."
+        )
 
     # Check for popular high-demand skills
-    high_demand = {"python", "react", "aws", "docker", "kubernetes", "typescript", "go", "rust"}
+    high_demand = {
+        "python",
+        "react",
+        "aws",
+        "docker",
+        "kubernetes",
+        "typescript",
+        "go",
+        "rust",
+    }
     matched_hd = high_demand & set(skills)
     if len(matched_hd) >= 3:
         strengths.append(f"In-demand skills: {', '.join(sorted(matched_hd))}.")
@@ -503,7 +603,9 @@ def _identify_strengths(
     # Check for DevOps skills
     devops_skills = {"docker", "kubernetes", "terraform", "ci/cd", "jenkins"}
     if devops_skills & set(skills):
-        strengths.append("DevOps/containerization skills — modern engineering practices.")
+        strengths.append(
+            "DevOps/containerization skills — modern engineering practices."
+        )
 
     return strengths
 
@@ -518,13 +620,17 @@ def _identify_weaknesses(
     weaknesses: list[str] = []
 
     if len(skills) < 5:
-        weaknesses.append(f"Only {len(skills)} skills detected — sparse technical profile.")
+        weaknesses.append(
+            f"Only {len(skills)} skills detected — sparse technical profile."
+        )
     if experience_years == 0:
         weaknesses.append("No clear experience duration — may appear as entry-level.")
     if not sections.get("summary"):
         weaknesses.append("Missing professional summary — first thing recruiters read.")
     if not sections.get("projects"):
-        weaknesses.append("No projects section — missed opportunity to show practical skills.")
+        weaknesses.append(
+            "No projects section — missed opportunity to show practical skills."
+        )
     if not contact.get("email"):
         weaknesses.append("No email address — essential for recruiter contact.")
     if not contact.get("linkedin"):
@@ -532,12 +638,15 @@ def _identify_weaknesses(
     if not contact.get("github"):
         weaknesses.append("No GitHub — important for technical roles.")
     if not sections.get("certifications"):
-        weaknesses.append("No certifications listed — can differentiate from other candidates.")
+        weaknesses.append(
+            "No certifications listed — can differentiate from other candidates."
+        )
 
     return weaknesses
 
 
 # ── Public API ────────────────────────────────────────────────────────────────
+
 
 @dataclass
 class ResumeAnalysisResult:
@@ -609,7 +718,9 @@ def analyze_resume(text: str, target_role: str = "") -> ResumeAnalysisResult:
     education = _extract_education(sections)
 
     # Section names present
-    sections_detected = [s for s, content in sections.items() if content and s != "header"]
+    sections_detected = [
+        s for s, content in sections.items() if content and s != "header"
+    ]
 
     # ATS score
     ats_score = _compute_ats_score(text, sections, skills, contact)
@@ -633,7 +744,7 @@ def analyze_resume(text: str, target_role: str = "") -> ResumeAnalysisResult:
     quality_score = min(quality_score, 1.0)
 
     # Hiring readiness (composite)
-    hiring_score = (ats_score * 0.30 + tech_score * 0.35 + quality_score * 0.35)
+    hiring_score = ats_score * 0.30 + tech_score * 0.35 + quality_score * 0.35
 
     # Missing skills for target role
     missing_skills: list[str] = []
@@ -658,7 +769,9 @@ def analyze_resume(text: str, target_role: str = "") -> ResumeAnalysisResult:
     weaknesses = _identify_weaknesses(skills, experience_years, sections, contact)
 
     # Suggestions
-    suggestions = _generate_suggestions(sections, skills, contact, experience_years, ats_score)
+    suggestions = _generate_suggestions(
+        sections, skills, contact, experience_years, ats_score
+    )
 
     return ResumeAnalysisResult(
         name=contact.get("name", ""),

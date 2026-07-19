@@ -11,7 +11,6 @@ from jobpilot.web.app import app
 from jobpilot import database as db
 from jobpilot.auth import register_user, get_password_hash, create_access_token
 
-
 # =====================================================
 # TEST FIXTURES
 # =====================================================
@@ -30,10 +29,9 @@ def get_auth_token():
     except Exception:
         pass  # User may already exist
 
-    response = client.post("/api/auth/login", data={
-        "username": TEST_EMAIL,
-        "password": TEST_PASSWORD
-    })
+    response = client.post(
+        "/api/auth/login", data={"username": TEST_EMAIL, "password": TEST_PASSWORD}
+    )
     if response.status_code == 200:
         return response.json()["access_token"]
     return None
@@ -47,41 +45,44 @@ HEADERS = {"Authorization": f"Bearer {AUTH_TOKEN}"} if AUTH_TOKEN else {}
 # AUTHENTICATION API TESTS
 # =====================================================
 
+
 class TestAuthAPI(unittest.TestCase):
     def test_register_success(self):
         import os
+
         unique_email = f"test_{os.urandom(4).hex()}@example.com"
-        response = client.post("/api/auth/register", json={
-            "email": unique_email,
-            "password": "TestPass123!",
-            "name": "New User"
-        })
+        response = client.post(
+            "/api/auth/register",
+            json={
+                "email": unique_email,
+                "password": "TestPass123!",
+                "name": "New User",
+            },
+        )
         assert response.status_code == 200
         data = response.json()
         assert "id" in data
         assert data["email"] == unique_email
 
     def test_register_duplicate_email(self):
-        response = client.post("/api/auth/register", json={
-            "email": TEST_EMAIL,
-            "password": "TestPass123!",
-            "name": "Duplicate"
-        })
+        response = client.post(
+            "/api/auth/register",
+            json={"email": TEST_EMAIL, "password": "TestPass123!", "name": "Duplicate"},
+        )
         assert response.status_code == 400
 
     def test_login_success(self):
-        response = client.post("/api/auth/login", data={
-            "username": TEST_EMAIL,
-            "password": TEST_PASSWORD
-        })
+        response = client.post(
+            "/api/auth/login", data={"username": TEST_EMAIL, "password": TEST_PASSWORD}
+        )
         assert response.status_code == 200
         assert "access_token" in response.json()
 
     def test_login_wrong_password(self):
-        response = client.post("/api/auth/login", data={
-            "username": TEST_EMAIL,
-            "password": "WrongPassword"
-        })
+        response = client.post(
+            "/api/auth/login",
+            data={"username": TEST_EMAIL, "password": "WrongPassword"},
+        )
         assert response.status_code == 401
 
     def test_protected_route(self):
@@ -94,10 +95,9 @@ class TestAuthAPI(unittest.TestCase):
         assert "email" in response.json()
 
     def test_refresh_token(self):
-        response = client.post("/api/auth/login", data={
-            "username": TEST_EMAIL,
-            "password": TEST_PASSWORD
-        })
+        response = client.post(
+            "/api/auth/login", data={"username": TEST_EMAIL, "password": TEST_PASSWORD}
+        )
         refresh_token = response.json()["refresh_token"]
         response = client.post(f"/api/auth/refresh?refresh_token={refresh_token}")
         assert response.status_code == 200
@@ -107,6 +107,7 @@ class TestAuthAPI(unittest.TestCase):
 # =====================================================
 # JOBS API TESTS
 # =====================================================
+
 
 class TestJobsAPI(unittest.TestCase):
     def test_list_jobs(self):
@@ -132,12 +133,17 @@ class TestJobsAPI(unittest.TestCase):
 # RESUME API TESTS
 # =====================================================
 
+
 class TestResumeAPI(unittest.TestCase):
     def test_analyze_resume(self):
-        response = client.post("/api/resume/analyze", json={
-            "text": "John Doe\nPython developer with 5 years experience.\nSkills: Python, Django",
-            "target_role": "backend engineer",
-        }, headers=HEADERS)
+        response = client.post(
+            "/api/resume/analyze",
+            json={
+                "text": "John Doe\nPython developer with 5 years experience.\nSkills: Python, Django",
+                "target_role": "backend engineer",
+            },
+            headers=HEADERS,
+        )
         assert response.status_code == 200
         data = response.json()
         assert "skills" in data
@@ -159,14 +165,19 @@ class TestResumeAPI(unittest.TestCase):
 # COVER LETTER API TESTS
 # =====================================================
 
+
 class TestCoverLetterAPI(unittest.TestCase):
     def test_generate_cover_letter(self):
-        response = client.post("/api/cover-letter/generate", json={
-            "resume_text": "John Doe\nPython developer",
-            "job_description": "Looking for Python developer",
-            "company_name": "TestCorp",
-            "role_title": "Python Developer",
-        }, headers=HEADERS)
+        response = client.post(
+            "/api/cover-letter/generate",
+            json={
+                "resume_text": "John Doe\nPython developer",
+                "job_description": "Looking for Python developer",
+                "company_name": "TestCorp",
+                "role_title": "Python Developer",
+            },
+            headers=HEADERS,
+        )
         assert response.status_code == 200
         assert "letter_text" in response.json()
 
@@ -180,14 +191,19 @@ class TestCoverLetterAPI(unittest.TestCase):
 # INTERVIEW API TESTS
 # =====================================================
 
+
 class TestInterviewAPI(unittest.TestCase):
     def test_generate_questions(self):
-        response = client.post("/api/interview/questions", json={
-            "role_title": "Python Developer",
-            "categories": ["technical"],
-            "difficulty": "intermediate",
-            "count": 5,
-        }, headers=HEADERS)
+        response = client.post(
+            "/api/interview/questions",
+            json={
+                "role_title": "Python Developer",
+                "categories": ["technical"],
+                "difficulty": "intermediate",
+                "count": 5,
+            },
+            headers=HEADERS,
+        )
         assert response.status_code == 200
         assert "questions" in response.json()
         assert len(response.json()["questions"]) > 0
@@ -201,12 +217,17 @@ class TestInterviewAPI(unittest.TestCase):
 # SKILL GAP API TESTS
 # =====================================================
 
+
 class TestSkillGapAPI(unittest.TestCase):
     def test_analyze_skill_gap(self):
-        response = client.post("/api/skill-gap/analyze", json={
-            "resume_text": "Python developer with Django",
-            "job_description": "Python, Django, Docker, AWS",
-        }, headers=HEADERS)
+        response = client.post(
+            "/api/skill-gap/analyze",
+            json={
+                "resume_text": "Python developer with Django",
+                "job_description": "Python, Django, Docker, AWS",
+            },
+            headers=HEADERS,
+        )
         assert response.status_code == 200
         assert "match_percentage" in response.json()
         assert "missing_skills" in response.json()
@@ -216,14 +237,19 @@ class TestSkillGapAPI(unittest.TestCase):
 # LINKEDIN API TESTS
 # =====================================================
 
+
 class TestLinkedInAPI(unittest.TestCase):
     def test_analyze_linkedin(self):
-        response = client.post("/api/linkedin/analyze", json={
-            "headline": "Software Engineer",
-            "about": "Passionate developer",
-            "skills": "Python, Java",
-            "experience": "5 years experience",
-        }, headers=HEADERS)
+        response = client.post(
+            "/api/linkedin/analyze",
+            json={
+                "headline": "Software Engineer",
+                "about": "Passionate developer",
+                "skills": "Python, Java",
+                "experience": "5 years experience",
+            },
+            headers=HEADERS,
+        )
         assert response.status_code == 200
         assert "visibility_score" in response.json()
 
@@ -232,12 +258,17 @@ class TestLinkedInAPI(unittest.TestCase):
 # RESUME TAILORING API TESTS
 # =====================================================
 
+
 class TestResumeTailorAPI(unittest.TestCase):
     def test_tailor_resume(self):
-        response = client.post("/api/resume/tailor", json={
-            "resume_text": "Python developer with Django experience",
-            "job_description": "Python, Docker, AWS, Kubernetes",
-        }, headers=HEADERS)
+        response = client.post(
+            "/api/resume/tailor",
+            json={
+                "resume_text": "Python developer with Django experience",
+                "job_description": "Python, Docker, AWS, Kubernetes",
+            },
+            headers=HEADERS,
+        )
         assert response.status_code == 200
         assert "original_score" in response.json()
         assert "tailored_score" in response.json()
@@ -247,13 +278,18 @@ class TestResumeTailorAPI(unittest.TestCase):
 # ALERTS API TESTS
 # =====================================================
 
+
 class TestAlertsAPI(unittest.TestCase):
     def test_subscribe_alert(self):
-        response = client.post("/api/alerts/subscribe", json={
-            "role": "Python Developer",
-            "location": "Remote",
-            "frequency": "daily",
-        }, headers=HEADERS)
+        response = client.post(
+            "/api/alerts/subscribe",
+            json={
+                "role": "Python Developer",
+                "location": "Remote",
+                "frequency": "daily",
+            },
+            headers=HEADERS,
+        )
         assert response.status_code == 200
 
     def test_list_alerts(self):
@@ -265,6 +301,7 @@ class TestAlertsAPI(unittest.TestCase):
 # =====================================================
 # DASHBOARD API TESTS
 # =====================================================
+
 
 class TestDashboardAPI(unittest.TestCase):
     def test_dashboard_stats(self):
@@ -291,6 +328,7 @@ class TestDashboardAPI(unittest.TestCase):
 # NOTIFICATIONS API TESTS
 # =====================================================
 
+
 class TestNotificationsAPI(unittest.TestCase):
     def test_list_notifications(self):
         response = client.get("/api/notifications", headers=HEADERS)
@@ -307,6 +345,7 @@ class TestNotificationsAPI(unittest.TestCase):
 # APPLICATIONS API TESTS
 # =====================================================
 
+
 class TestApplicationsAPI(unittest.TestCase):
     def test_list_applications(self):
         response = client.get("/api/applications", headers=HEADERS)
@@ -322,19 +361,28 @@ class TestApplicationsAPI(unittest.TestCase):
 # CAREER FEATURES API TESTS
 # =====================================================
 
+
 class TestCareerAPI(unittest.TestCase):
     def test_roadmap_generate(self):
-        response = client.post("/api/roadmap/generate", json={
-            "goal_role": "Backend Developer",
-            "goal_company": "Google",
-        }, headers=HEADERS)
+        response = client.post(
+            "/api/roadmap/generate",
+            json={
+                "goal_role": "Backend Developer",
+                "goal_company": "Google",
+            },
+            headers=HEADERS,
+        )
         assert response.status_code == 200
         assert "roadmap_data" in response.json()
 
     def test_coach_ask(self):
-        response = client.post("/api/coach/ask", json={
-            "question": "Why is my ATS score low?",
-        }, headers=HEADERS)
+        response = client.post(
+            "/api/coach/ask",
+            json={
+                "question": "Why is my ATS score low?",
+            },
+            headers=HEADERS,
+        )
         assert response.status_code == 200
         assert "answer" in response.json()
 
@@ -344,11 +392,15 @@ class TestCareerAPI(unittest.TestCase):
         assert "versions" in response.json()
 
     def test_salary_estimate(self):
-        response = client.post("/api/salary/estimate", json={
-            "role": "Software Engineer",
-            "location": "San Francisco",
-            "skills": ["python"],
-        }, headers=HEADERS)
+        response = client.post(
+            "/api/salary/estimate",
+            json={
+                "role": "Software Engineer",
+                "location": "San Francisco",
+                "skills": ["python"],
+            },
+            headers=HEADERS,
+        )
         assert response.status_code == 200
         assert "estimated_min" in response.json()
 
@@ -361,6 +413,7 @@ class TestCareerAPI(unittest.TestCase):
 # =====================================================
 # HEALTH CHECK TESTS
 # =====================================================
+
 
 class TestHealthAPI(unittest.TestCase):
     def test_health_endpoint(self):
@@ -385,10 +438,19 @@ if __name__ == "__main__":
     suite = unittest.TestSuite()
 
     test_classes = [
-        TestAuthAPI, TestJobsAPI, TestResumeAPI, TestCoverLetterAPI,
-        TestInterviewAPI, TestSkillGapAPI, TestLinkedInAPI,
-        TestResumeTailorAPI, TestAlertsAPI, TestDashboardAPI,
-        TestNotificationsAPI, TestApplicationsAPI, TestCareerAPI,
+        TestAuthAPI,
+        TestJobsAPI,
+        TestResumeAPI,
+        TestCoverLetterAPI,
+        TestInterviewAPI,
+        TestSkillGapAPI,
+        TestLinkedInAPI,
+        TestResumeTailorAPI,
+        TestAlertsAPI,
+        TestDashboardAPI,
+        TestNotificationsAPI,
+        TestApplicationsAPI,
+        TestCareerAPI,
         TestHealthAPI,
     ]
 
@@ -399,7 +461,9 @@ if __name__ == "__main__":
     result = runner.run(suite)
 
     print(f"\n{'='*60}")
-    print(f"API Tests: {result.testsRun} run, {len(result.failures)} failures, {len(result.errors)} errors")
+    print(
+        f"API Tests: {result.testsRun} run, {len(result.failures)} failures, {len(result.errors)} errors"
+    )
     print(f"{'='*60}")
 
     sys.exit(0 if result.wasSuccessful() else 1)

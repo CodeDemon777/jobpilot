@@ -31,7 +31,9 @@ class GreenhouseScraper(BaseScraper):
     source_name = "greenhouse"
     base_url = "https://boards-api.greenhouse.io/v1/boards"
 
-    async def search(self, query: str, location: str = "", **kwargs) -> list[JobListing]:
+    async def search(
+        self, query: str, location: str = "", **kwargs
+    ) -> list[JobListing]:
         """Search all known Greenhouse boards for matching jobs."""
         board_tokens = kwargs.get("boards", list(KNOWN_GREENHOUSE_BOARDS.values()))
         query_lower = query.lower()
@@ -57,7 +59,10 @@ class GreenhouseScraper(BaseScraper):
 
                     # Filter by location
                     if location and location.lower() not in location_name.lower():
-                        if "remote" not in location.lower() or "remote" not in location_name.lower():
+                        if (
+                            "remote" not in location.lower()
+                            or "remote" not in location_name.lower()
+                        ):
                             continue
 
                     job = self._parse_job(token, job_data, location_name)
@@ -113,7 +118,9 @@ class GreenhouseScraper(BaseScraper):
 
         # Build application URL
         job_id = data.get("id", "")
-        application_url = data.get("absolute_url", f"https://boards.greenhouse.io/{board_token}/jobs/{job_id}")
+        application_url = data.get(
+            "absolute_url", f"https://boards.greenhouse.io/{board_token}/jobs/{job_id}"
+        )
 
         return JobListing(
             company=board_token.replace("-", " ").title(),
@@ -141,6 +148,7 @@ class GreenhouseScraper(BaseScraper):
     def _clean_html(self, html: str) -> str:
         """Remove HTML tags from content."""
         import re
+
         text = re.sub(r"<[^>]+>", " ", html)
         text = unescape(text)
         text = re.sub(r"\s+", " ", text).strip()

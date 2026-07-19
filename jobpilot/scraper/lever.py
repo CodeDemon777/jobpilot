@@ -29,7 +29,9 @@ class LeverScraper(BaseScraper):
     source_name = "lever"
     base_url = "https://api.lever.co/v0/postings"
 
-    async def search(self, query: str, location: str = "", **kwargs) -> list[JobListing]:
+    async def search(
+        self, query: str, location: str = "", **kwargs
+    ) -> list[JobListing]:
         board_tokens = kwargs.get("boards", list(KNOWN_LEVER_BOARDS.values()))
         query_lower = query.lower()
         jobs = []
@@ -50,12 +52,20 @@ class LeverScraper(BaseScraper):
                     desc = job_data.get("descriptionPlain", "")
                     skills = self._extract_skills(desc)
                     remote_status = "remote" if "remote" in loc.lower() else "onsite"
-                    jobs.append(JobListing(
-                        company=token.title(), title=title, location=loc,
-                        remote_status=remote_status, required_skills=skills,
-                        description=desc[:500], url=job_url, source="lever",
-                        tech_stack=skills, application_url=job_url,
-                    ))
+                    jobs.append(
+                        JobListing(
+                            company=token.title(),
+                            title=title,
+                            location=loc,
+                            remote_status=remote_status,
+                            required_skills=skills,
+                            description=desc[:500],
+                            url=job_url,
+                            source="lever",
+                            tech_stack=skills,
+                            application_url=job_url,
+                        )
+                    )
             except Exception as e:
                 logger.warning(f"Lever board '{token}' failed: {e}")
         logger.info(f"Lever: found {len(jobs)} jobs")

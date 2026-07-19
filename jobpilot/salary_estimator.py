@@ -5,7 +5,6 @@ from typing import Optional
 from jobpilot import database as db
 from jobpilot.config import DB_PATH
 
-
 # Salary data by role, experience level, and location type
 SALARY_DATA = {
     "software engineer": {
@@ -101,8 +100,14 @@ class SalaryEstimator:
     def __init__(self, db_path=None):
         self.db_path = db_path or DB_PATH
 
-    def estimate(self, role: str, company: str = "", location: str = "",
-                 experience_level: str = "", skills: list = None) -> dict:
+    def estimate(
+        self,
+        role: str,
+        company: str = "",
+        location: str = "",
+        experience_level: str = "",
+        skills: list = None,
+    ) -> dict:
         """
         Estimate salary for a given role and profile.
 
@@ -133,10 +138,14 @@ class SalaryEstimator:
         adjusted_max += skill_premium
 
         # Calculate confidence
-        confidence = self._calculate_confidence(role, company, location, experience_level)
+        confidence = self._calculate_confidence(
+            role, company, location, experience_level
+        )
 
         # Generate factors
-        factors = self._analyze_factors(role, company, location, experience_level, skills)
+        factors = self._analyze_factors(
+            role, company, location, experience_level, skills
+        )
 
         # Generate tips
         tips = self._generate_tips(role, skills, experience_level)
@@ -205,8 +214,9 @@ class SalaryEstimator:
 
         return min(premium, 30000)  # Cap at $30k premium
 
-    def _calculate_confidence(self, role: str, company: str,
-                              location: str, experience_level: str) -> float:
+    def _calculate_confidence(
+        self, role: str, company: str, location: str, experience_level: str
+    ) -> float:
         """Calculate confidence score for the estimate."""
         confidence = 0.5  # Base confidence
 
@@ -226,13 +236,21 @@ class SalaryEstimator:
 
         return min(confidence, 0.95)
 
-    def _analyze_factors(self, role: str, company: str, location: str,
-                         experience_level: str, skills: list) -> list:
+    def _analyze_factors(
+        self,
+        role: str,
+        company: str,
+        location: str,
+        experience_level: str,
+        skills: list,
+    ) -> list:
         """Analyze factors affecting salary."""
         factors = []
 
         if experience_level:
-            factors.append(f"Experience level ({experience_level}) significantly impacts salary")
+            factors.append(
+                f"Experience level ({experience_level}) significantly impacts salary"
+            )
 
         if location:
             factors.append(f"Location ({location}) affects cost of living adjustments")
@@ -240,7 +258,9 @@ class SalaryEstimator:
         premium_skills = ["aws", "kubernetes", "machine learning", "rust", "go"]
         matched_premium = [s for s in skills if s.lower() in premium_skills]
         if matched_premium:
-            factors.append(f"Premium skills ({', '.join(matched_premium)}) increase salary")
+            factors.append(
+                f"Premium skills ({', '.join(matched_premium)}) increase salary"
+            )
 
         if company:
             factors.append(f"Company ({company}) size and industry affect compensation")

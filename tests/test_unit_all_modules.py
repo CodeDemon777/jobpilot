@@ -7,10 +7,22 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from jobpilot.models import (
-    UserProfile, JobListing, MatchResult, Application, Company, Resume,
-    CoverLetter, InterviewQuestion, SkillGapReport, LinkedInReport,
-    TailoredResume, AlertSubscription, DashboardStats, JobNotification,
-    JobScanHistory, _generate_id
+    UserProfile,
+    JobListing,
+    MatchResult,
+    Application,
+    Company,
+    Resume,
+    CoverLetter,
+    InterviewQuestion,
+    SkillGapReport,
+    LinkedInReport,
+    TailoredResume,
+    AlertSubscription,
+    DashboardStats,
+    JobNotification,
+    JobScanHistory,
+    _generate_id,
 )
 from jobpilot import database as db
 from jobpilot.matcher import compute_match
@@ -22,6 +34,7 @@ def cleanup():
     """Force cleanup of test database."""
     import gc
     import os
+
     gc.collect()  # Force garbage collection to release any open file handles
     if TEST_DB.exists():
         try:
@@ -30,6 +43,7 @@ def cleanup():
             # Try to close any open connections first
             try:
                 import sqlite3
+
                 conn = sqlite3.connect(str(TEST_DB))
                 conn.close()
             except:
@@ -43,6 +57,7 @@ def cleanup():
 # =====================================================
 # MODEL TESTS
 # =====================================================
+
 
 class TestModels(unittest.TestCase):
     def test_job_listing_id_deterministic(self):
@@ -160,9 +175,11 @@ class TestModels(unittest.TestCase):
 # AUTH TESTS
 # =====================================================
 
+
 class TestAuth(unittest.TestCase):
     def test_password_hash_and_verify(self):
         from jobpilot.auth import get_password_hash, verify_password
+
         password = "TestPass123!"
         hashed = get_password_hash(password)
         assert hashed != password
@@ -171,18 +188,21 @@ class TestAuth(unittest.TestCase):
 
     def test_token_creation(self):
         from jobpilot.auth import create_access_token
+
         token = create_access_token(data={"sub": 1, "email": "test@example.com"})
         assert isinstance(token, str)
         assert len(token) > 0
 
     def test_refresh_token_creation(self):
         from jobpilot.auth import create_refresh_token
+
         token = create_refresh_token(data={"sub": 1, "email": "test@example.com"})
         assert isinstance(token, str)
         assert len(token) > 0
 
     def test_token_decode(self):
         from jobpilot.auth import create_access_token, decode_token
+
         token = create_access_token(data={"sub": 1, "email": "test@example.com"})
         data = decode_token(token)
         assert data.user_id == 1
@@ -190,6 +210,7 @@ class TestAuth(unittest.TestCase):
 
     def test_token_decode_invalid(self):
         from jobpilot.auth import decode_token
+
         try:
             decode_token("invalid.token.here")
             assert False, "Should raise HTTPException"
@@ -198,6 +219,7 @@ class TestAuth(unittest.TestCase):
 
     def test_password_validation(self):
         from jobpilot.security import validate_password
+
         assert validate_password("short")[0] is False
         assert validate_password("nouppercase123!")[0] is False
         assert validate_password("NOLOWERCASE123!")[0] is False
@@ -206,6 +228,7 @@ class TestAuth(unittest.TestCase):
 
     def test_email_validation(self):
         from jobpilot.security import validate_email
+
         assert validate_email("test@example.com") is True
         assert validate_email("invalid") is False
         assert validate_email("@example.com") is False
@@ -213,6 +236,7 @@ class TestAuth(unittest.TestCase):
 
     def test_input_sanitization(self):
         from jobpilot.security import sanitize_input
+
         assert "<script>" not in sanitize_input("<script>alert('xss')</script>")
         assert "<b>" not in sanitize_input("Hello <b>World</b>")
         assert sanitize_input("Normal text") == "Normal text"
@@ -222,9 +246,11 @@ class TestAuth(unittest.TestCase):
 # RESUME ANALYZER TESTS
 # =====================================================
 
+
 class TestResumeAnalyzer(unittest.TestCase):
     def test_skill_extraction(self):
         from jobpilot.resume_analyzer import _extract_skills
+
         skills = _extract_skills("We need Python, React, and AWS experience")
         assert "python" in skills
         assert "react" in skills
@@ -232,6 +258,7 @@ class TestResumeAnalyzer(unittest.TestCase):
 
     def test_section_detection(self):
         from jobpilot.resume_analyzer import _detect_sections
+
         text = "Summary\nAbout me\n\nExperience\nWork history\n\nSkills\nPython, React"
         sections = _detect_sections(text)
         assert "summary" in sections
@@ -240,6 +267,7 @@ class TestResumeAnalyzer(unittest.TestCase):
 
     def test_contact_extraction(self):
         from jobpilot.resume_analyzer import _extract_contact
+
         text = "John Doe\njohn@example.com | (555) 123-4567"
         contact = _extract_contact(text)
         assert contact.get("email") == "john@example.com"
@@ -247,12 +275,14 @@ class TestResumeAnalyzer(unittest.TestCase):
 
     def test_experience_years(self):
         from jobpilot.resume_analyzer import _estimate_experience_years
+
         text = "5 years of experience in software development"
         years = _estimate_experience_years(text, {})
         assert years >= 5
 
     def test_analyze_resume(self):
         from jobpilot.resume_analyzer import analyze_resume
+
         text = """
         John Doe
         john@example.com
@@ -265,11 +295,13 @@ class TestResumeAnalyzer(unittest.TestCase):
 
     def test_empty_resume(self):
         from jobpilot.resume_analyzer import analyze_resume
+
         result = analyze_resume("")
         assert result.ats_score == 0
 
     def test_alias_matching(self):
         from jobpilot.resume_analyzer import _extract_skills
+
         skills = _extract_skills("Experience with reactjs and nodejs")
         assert "react" in skills
         assert "node.js" in skills
@@ -279,9 +311,11 @@ class TestResumeAnalyzer(unittest.TestCase):
 # MATCHER TESTS
 # =====================================================
 
+
 class TestMatcher(unittest.TestCase):
     def test_strong_match(self):
         from jobpilot.models import UserProfile
+
         profile = UserProfile(
             skills=["python", "react", "aws", "redis"],
             experience_years=5,
@@ -289,7 +323,8 @@ class TestMatcher(unittest.TestCase):
             remote_preference="remote",
         )
         job = JobListing(
-            company="Co", title="Python Engineer",
+            company="Co",
+            title="Python Engineer",
             required_skills=["python", "react", "aws"],
             experience_years=3,
         )
@@ -298,9 +333,11 @@ class TestMatcher(unittest.TestCase):
 
     def test_poor_match(self):
         from jobpilot.models import UserProfile
+
         profile = UserProfile(skills=["cooking"], experience_years=1)
         job = JobListing(
-            company="Co", title="Rust Engineer",
+            company="Co",
+            title="Rust Engineer",
             required_skills=["rust", "c++", "go"],
             experience_years=8,
         )
@@ -308,10 +345,19 @@ class TestMatcher(unittest.TestCase):
         assert result.overall_score < 0.5
 
     def test_weights_sum(self):
-        assert abs(sum(__import__('jobpilot.config', fromlist=['WEIGHTS']).WEIGHTS.values()) - 1.0) < 0.001
+        assert (
+            abs(
+                sum(
+                    __import__("jobpilot.config", fromlist=["WEIGHTS"]).WEIGHTS.values()
+                )
+                - 1.0
+            )
+            < 0.001
+        )
 
     def test_experience_score_capped(self):
         from jobpilot.models import UserProfile
+
         profile = UserProfile(experience_years=20)
         job = JobListing(company="Co", title="Dev", experience_years=2)
         result = compute_match(profile, job)
@@ -322,35 +368,42 @@ class TestMatcher(unittest.TestCase):
 # PDF PARSER TESTS
 # =====================================================
 
+
 class TestPdfParser(unittest.TestCase):
     def test_validate_upload_valid(self):
         from jobpilot.pdf_parser import validate_upload
+
         valid, msg = validate_upload(b"test content", "resume.txt")
         assert valid is True
 
     def test_validate_upload_empty(self):
         from jobpilot.pdf_parser import validate_upload
+
         valid, msg = validate_upload(b"", "resume.txt")
         assert valid is False
 
     def test_validate_upload_unsupported(self):
         from jobpilot.pdf_parser import validate_upload
+
         valid, msg = validate_upload(b"test", "resume.exe")
         assert valid is False
 
     def test_extract_text_from_txt(self):
         from jobpilot.pdf_parser import extract_text_from_file
+
         text = extract_text_from_file(b"Hello World\nTest Content", "test.txt")
         assert "Hello World" in text
 
     def test_generate_resume_id(self):
         from jobpilot.pdf_parser import generate_resume_id
+
         id1 = generate_resume_id(b"test content", "resume.txt")
         id2 = generate_resume_id(b"test content", "resume.txt")
         assert id1 == id2
 
     def test_get_file_type(self):
         from jobpilot.pdf_parser import get_file_type
+
         assert get_file_type("resume.pdf") == "pdf"
         assert get_file_type("resume.txt") == "txt"
         assert get_file_type("resume.md") == "txt"
@@ -360,9 +413,11 @@ class TestPdfParser(unittest.TestCase):
 # COVER LETTER GENERATOR TESTS
 # =====================================================
 
+
 class TestCoverLetterGenerator(unittest.TestCase):
     def test_generate_professional(self):
         from jobpilot.cover_letter_generator import generate_cover_letter
+
         result = generate_cover_letter(
             resume_text="John Doe\nPython developer with 5 years experience.",
             job_description="Looking for a Python developer with Django experience.",
@@ -376,6 +431,7 @@ class TestCoverLetterGenerator(unittest.TestCase):
 
     def test_generate_enthusiastic(self):
         from jobpilot.cover_letter_generator import generate_cover_letter
+
         result = generate_cover_letter(
             resume_text="Resume",
             job_description="Job",
@@ -387,6 +443,7 @@ class TestCoverLetterGenerator(unittest.TestCase):
 
     def test_tone_variations(self):
         from jobpilot.cover_letter_generator import generate_cover_letter
+
         r1 = generate_cover_letter("Resume", "Job", "Co", "Dev", tone="professional")
         r2 = generate_cover_letter("Resume", "Job", "Co", "Dev", tone="enthusiastic")
         assert r1["letter_text"] != r2["letter_text"]
@@ -396,9 +453,11 @@ class TestCoverLetterGenerator(unittest.TestCase):
 # SKILL GAP ANALYZER TESTS
 # =====================================================
 
+
 class TestSkillGapAnalyzer(unittest.TestCase):
     def test_matching_skills(self):
         from jobpilot.skill_gap_analyzer import analyze_skill_gap
+
         result = analyze_skill_gap(
             resume_skills=["python", "django"],
             job_required_skills=["python", "django", "docker"],
@@ -409,6 +468,7 @@ class TestSkillGapAnalyzer(unittest.TestCase):
 
     def test_match_percentage(self):
         from jobpilot.skill_gap_analyzer import analyze_skill_gap
+
         result = analyze_skill_gap(
             resume_skills=["python", "django", "docker"],
             job_required_skills=["python", "django", "docker"],
@@ -417,6 +477,7 @@ class TestSkillGapAnalyzer(unittest.TestCase):
 
     def test_empty_skills(self):
         from jobpilot.skill_gap_analyzer import analyze_skill_gap
+
         result = analyze_skill_gap(
             resume_skills=[],
             job_required_skills=["python", "django"],
@@ -429,9 +490,11 @@ class TestSkillGapAnalyzer(unittest.TestCase):
 # LINKEDIN ANALYZER TESTS
 # =====================================================
 
+
 class TestLinkedInAnalyzer(unittest.TestCase):
     def test_analyze_profile(self):
         from jobpilot.linkedin_analyzer import analyze_linkedin_profile
+
         result = analyze_linkedin_profile(
             headline="Senior Software Engineer at TechCorp",
             about="I am a passionate developer with 5 years of experience.",
@@ -444,6 +507,7 @@ class TestLinkedInAnalyzer(unittest.TestCase):
 
     def test_empty_profile(self):
         from jobpilot.linkedin_analyzer import analyze_linkedin_profile
+
         result = analyze_linkedin_profile()
         assert result["visibility_score"] == 0
         assert result["strength_score"] == 0
@@ -453,9 +517,11 @@ class TestLinkedInAnalyzer(unittest.TestCase):
 # SALARY ESTIMATOR TESTS
 # =====================================================
 
+
 class TestSalaryEstimator(unittest.TestCase):
     def test_estimate_salary(self):
         from jobpilot.salary_estimator import SalaryEstimator
+
         estimator = SalaryEstimator()
         result = estimator.estimate(
             role="Software Engineer",
@@ -468,6 +534,7 @@ class TestSalaryEstimator(unittest.TestCase):
 
     def test_location_multiplier(self):
         from jobpilot.salary_estimator import SalaryEstimator
+
         estimator = SalaryEstimator()
         sf = estimator.estimate(role="Software Engineer", location="San Francisco")
         remote = estimator.estimate(role="Software Engineer", location="Remote")
@@ -475,9 +542,12 @@ class TestSalaryEstimator(unittest.TestCase):
 
     def test_skill_premium(self):
         from jobpilot.salary_estimator import SalaryEstimator
+
         estimator = SalaryEstimator()
         no_skills = estimator.estimate(role="Software Engineer", skills=[])
-        with_ml = estimator.estimate(role="Software Engineer", skills=["machine learning", "python"])
+        with_ml = estimator.estimate(
+            role="Software Engineer", skills=["machine learning", "python"]
+        )
         assert with_ml["estimated_min"] > no_skills["estimated_min"]
 
 
@@ -485,9 +555,11 @@ class TestSalaryEstimator(unittest.TestCase):
 # CAREER ROADMAP TESTS
 # =====================================================
 
+
 class TestCareerRoadmap(unittest.TestCase):
     def test_generate_roadmap(self):
         from jobpilot.career_roadmap import CareerRoadmapGenerator
+
         generator = CareerRoadmapGenerator()
         roadmap = generator.generate_roadmap(goal_role="Backend Developer")
         assert "roadmap_data" in roadmap
@@ -496,6 +568,7 @@ class TestCareerRoadmap(unittest.TestCase):
 
     def test_roadmap_phases(self):
         from jobpilot.career_roadmap import CareerRoadmapGenerator
+
         generator = CareerRoadmapGenerator()
         roadmap = generator.generate_roadmap(goal_role="ML Engineer")
         phases = [p["phase"] for p in roadmap["roadmap_data"]]
@@ -508,9 +581,11 @@ class TestCareerRoadmap(unittest.TestCase):
 # CAREER COACH TESTS
 # =====================================================
 
+
 class TestCareerCoach(unittest.TestCase):
     def test_ask_ats_question(self):
         from jobpilot.career_coach import CareerCoach
+
         coach = CareerCoach()
         result = coach.ask("Why is my ATS score low?")
         assert "answer" in result
@@ -518,6 +593,7 @@ class TestCareerCoach(unittest.TestCase):
 
     def test_ask_project_question(self):
         from jobpilot.career_coach import CareerCoach
+
         coach = CareerCoach()
         result = coach.ask("What projects should I add?")
         assert "answer" in result
@@ -525,6 +601,7 @@ class TestCareerCoach(unittest.TestCase):
 
     def test_ask_salary_question(self):
         from jobpilot.career_coach import CareerCoach
+
         coach = CareerCoach()
         result = coach.ask("What salary should I expect?")
         assert "answer" in result
@@ -535,9 +612,11 @@ class TestCareerCoach(unittest.TestCase):
 # RESUME VERSION MANAGER TESTS
 # =====================================================
 
+
 class TestResumeVersionManager(unittest.TestCase):
     def test_create_version(self):
         from jobpilot.resume_version_manager import ResumeVersionManager
+
         manager = ResumeVersionManager()
         result = manager.create_version(
             user_id=1,
@@ -551,12 +630,14 @@ class TestResumeVersionManager(unittest.TestCase):
     def test_get_versions(self):
         import gc
         import os
+
         gc.collect()
         cleanup()
         from jobpilot.resume_version_manager import ResumeVersionManager
+
         manager = ResumeVersionManager()
         # Use unique user ID to avoid conflicts
-        user_id = int.from_bytes(os.urandom(4), 'big')
+        user_id = int.from_bytes(os.urandom(4), "big")
         manager.create_version(user_id=user_id, name="V1", raw_text="Resume v1")
         manager.create_version(user_id=user_id, name="V2", raw_text="Resume v2")
         versions = manager.get_versions(user_id)
@@ -567,9 +648,11 @@ class TestResumeVersionManager(unittest.TestCase):
 # COMPANY INTERVIEWS TESTS
 # =====================================================
 
+
 class TestCompanyInterviews(unittest.TestCase):
     def test_get_google_interview(self):
         from jobpilot.company_interviews import CompanyInterviewManager
+
         manager = CompanyInterviewManager()
         info = manager.get_interview_info("google")
         assert info["company"] == "Google"
@@ -578,12 +661,14 @@ class TestCompanyInterviews(unittest.TestCase):
 
     def test_get_unknown_company(self):
         from jobpilot.company_interviews import CompanyInterviewManager
+
         manager = CompanyInterviewManager()
         info = manager.get_interview_info("unknown_company")
         assert info["is_preloaded"] is False
 
     def test_get_all_companies(self):
         from jobpilot.company_interviews import CompanyInterviewManager
+
         manager = CompanyInterviewManager()
         companies = manager.get_all_companies()
         assert len(companies) >= 5
@@ -594,12 +679,15 @@ class TestCompanyInterviews(unittest.TestCase):
 # DATABASE CRUD TESTS
 # =====================================================
 
+
 class TestDatabase(unittest.TestCase):
     def test_job_crud(self):
         import gc, os
+
         gc.collect()
         cleanup()
         from jobpilot.models import JobListing
+
         url = f"http://test{os.urandom(4).hex()}.com"
         j = JobListing(company="Co", title="Dev", url=url, source="test")
         assert db.upsert_job(j, TEST_DB) is True
@@ -611,8 +699,23 @@ class TestDatabase(unittest.TestCase):
     def test_search_jobs(self):
         cleanup()
         from jobpilot.models import JobListing
-        db.upsert_job(JobListing(company="PythonCo", title="Python Dev", url="http://a.com", source="test", description="python developer"), TEST_DB)
-        db.upsert_job(JobListing(company="JavaCo", title="Java Dev", url="http://b.com", source="test"), TEST_DB)
+
+        db.upsert_job(
+            JobListing(
+                company="PythonCo",
+                title="Python Dev",
+                url="http://a.com",
+                source="test",
+                description="python developer",
+            ),
+            TEST_DB,
+        )
+        db.upsert_job(
+            JobListing(
+                company="JavaCo", title="Java Dev", url="http://b.com", source="test"
+            ),
+            TEST_DB,
+        )
         results = db.search_jobs(query="python", db_path=TEST_DB)
         assert len(results) == 1
         assert results[0].company == "PythonCo"
@@ -620,6 +723,7 @@ class TestDatabase(unittest.TestCase):
     def test_application_lifecycle(self):
         cleanup()
         from jobpilot.models import JobListing, Application
+
         j = JobListing(company="Co", title="Dev", url="http://t.com", source="test")
         db.upsert_job(j, TEST_DB)
         app = Application(job_id=j.id, company="Co", role="Dev", status="discovered")
@@ -632,7 +736,9 @@ class TestDatabase(unittest.TestCase):
 
     def test_resume_crud(self):
         cleanup()
-        r = Resume(id="r1", name="test", filename="t.txt", raw_text="hello", target_role="dev")
+        r = Resume(
+            id="r1", name="test", filename="t.txt", raw_text="hello", target_role="dev"
+        )
         db.upsert_resume(r, TEST_DB)
         fetched = db.get_resume("r1", TEST_DB)
         assert fetched is not None
@@ -640,10 +746,17 @@ class TestDatabase(unittest.TestCase):
 
     def test_notification_crud(self):
         import gc, os
+
         gc.collect()
         cleanup()
         from jobpilot.models import JobListing
-        j = JobListing(company="Co", title="Dev", url=f"http://t{os.urandom(2).hex()}.com", source="test")
+
+        j = JobListing(
+            company="Co",
+            title="Dev",
+            url=f"http://t{os.urandom(2).hex()}.com",
+            source="test",
+        )
         db.upsert_job(j, TEST_DB)
         notif_id = db.create_job_notification(j.id, "new_match", "Test", 0.85, TEST_DB)
         assert notif_id > 0
@@ -653,6 +766,7 @@ class TestDatabase(unittest.TestCase):
     def test_alert_subscription_crud(self):
         cleanup()
         from jobpilot.models import AlertSubscription
+
         alert = AlertSubscription(role="Python", location="Remote")
         alert_id = db.save_alert_subscription(alert, TEST_DB)
         alerts = db.get_alert_subscriptions(TEST_DB)
@@ -665,13 +779,19 @@ class TestDatabase(unittest.TestCase):
 
     def test_roadmap_crud(self):
         import gc, os
+
         gc.collect()
         cleanup()
-        user_id = int.from_bytes(os.urandom(4), 'big')
+        user_id = int.from_bytes(os.urandom(4), "big")
         roadmap_id = db.save_roadmap(
-            user_id=user_id, goal_role="Backend Dev", goal_company="Google",
-            current_skills=["python"], missing_skills=["docker"],
-            roadmap_data=[], estimated_weeks=12, db_path=TEST_DB,
+            user_id=user_id,
+            goal_role="Backend Dev",
+            goal_company="Google",
+            current_skills=["python"],
+            missing_skills=["docker"],
+            roadmap_data=[],
+            estimated_weeks=12,
+            db_path=TEST_DB,
         )
         roadmaps = db.get_roadmaps(user_id, TEST_DB)
         assert len(roadmaps) == 1
@@ -681,14 +801,22 @@ class TestDatabase(unittest.TestCase):
 
     def test_salary_estimate_crud(self):
         import gc, os
+
         gc.collect()
         cleanup()
         role = f"Engineer_{os.urandom(4).hex()}"
         db.save_salary_estimate(
-            role=role, company="Google", location="SF",
-            experience_level="senior", skills=["python"],
-            estimated_min=150000, estimated_max=200000, currency="USD",
-            confidence=0.8, data_source="test", db_path=TEST_DB,
+            role=role,
+            company="Google",
+            location="SF",
+            experience_level="senior",
+            skills=["python"],
+            estimated_min=150000,
+            estimated_max=200000,
+            currency="USD",
+            confidence=0.8,
+            data_source="test",
+            db_path=TEST_DB,
         )
         estimates = db.get_salary_estimates(role=role, db_path=TEST_DB)
         assert len(estimates) == 1
@@ -697,7 +825,10 @@ class TestDatabase(unittest.TestCase):
     def test_cover_letter_crud(self):
         cleanup()
         from jobpilot.models import CoverLetter
-        cl = CoverLetter(company_name="Co", role_title="Dev", letter_text="Dear Hiring Manager...")
+
+        cl = CoverLetter(
+            company_name="Co", role_title="Dev", letter_text="Dear Hiring Manager..."
+        )
         letter_id = db.save_cover_letter(cl, TEST_DB)
         assert letter_id > 0
         letters = db.get_cover_letters(TEST_DB)
@@ -707,12 +838,16 @@ class TestDatabase(unittest.TestCase):
 
     def test_skill_gap_report_crud(self):
         import gc
+
         gc.collect()
         cleanup()
         from jobpilot.models import SkillGapReport
+
         report = SkillGapReport(
-            matched_skills=["python"], missing_skills=["docker"],
-            match_percentage=50.0, learning_areas=["DevOps"],
+            matched_skills=["python"],
+            missing_skills=["docker"],
+            match_percentage=50.0,
+            learning_areas=["DevOps"],
         )
         report_id = db.save_skill_gap_report(report, TEST_DB)
         assert report_id > 0
@@ -721,11 +856,15 @@ class TestDatabase(unittest.TestCase):
 
     def test_linkedin_report_crud(self):
         import gc, os
+
         gc.collect()
         cleanup()
         from jobpilot.models import LinkedInReport
+
         report = LinkedInReport(
-            headline=f"Engineer_{os.urandom(4).hex()}", visibility_score=75.0, strength_score=80.0,
+            headline=f"Engineer_{os.urandom(4).hex()}",
+            visibility_score=75.0,
+            strength_score=80.0,
         )
         report_id = db.save_linkedin_report(report, TEST_DB)
         assert report_id > 0
@@ -735,9 +874,13 @@ class TestDatabase(unittest.TestCase):
     def test_tailored_resume_crud(self):
         cleanup()
         from jobpilot.models import TailoredResume
+
         tr = TailoredResume(
-            original_text="Original", tailored_text="Tailored",
-            original_score=0.5, tailored_score=0.8, improvement_pct=60.0,
+            original_text="Original",
+            tailored_text="Tailored",
+            original_score=0.5,
+            tailored_score=0.8,
+            improvement_pct=60.0,
         )
         tr_id = db.save_tailored_resume(tr, TEST_DB)
         assert tr_id > 0
@@ -748,13 +891,18 @@ class TestDatabase(unittest.TestCase):
 
     def test_verification_flow(self):
         import gc
+
         # Force cleanup of any open connections
         gc.collect()
         cleanup()
         # Use a unique entity_id to avoid conflicts
         entity_id = f"verify_{id(self)}"
-        db.log_verification_event("profile", entity_id, "profile_verification_requested", db_path=TEST_DB)
-        db.log_verification_event("profile", entity_id, "profile_verification_accepted", db_path=TEST_DB)
+        db.log_verification_event(
+            "profile", entity_id, "profile_verification_requested", db_path=TEST_DB
+        )
+        db.log_verification_event(
+            "profile", entity_id, "profile_verification_accepted", db_path=TEST_DB
+        )
         events = db.get_verification_events("profile", entity_id, TEST_DB)
         assert len(events) == 2
         status = db.get_latest_verification_status("profile", entity_id, TEST_DB)
@@ -762,6 +910,7 @@ class TestDatabase(unittest.TestCase):
 
     def test_user_management(self):
         import os
+
         cleanup()
         unique_email = f"test_{os.urandom(4).hex()}@example.com"
         user_id = db.create_user(unique_email, "hashedpass", "Test User", TEST_DB)
@@ -778,9 +927,11 @@ class TestDatabase(unittest.TestCase):
 # SECURITY TESTS
 # =====================================================
 
+
 class TestSecurity(unittest.TestCase):
     def test_sql_injection_prevention(self):
         from jobpilot.security import sanitize_input
+
         malicious = "<script>'; DROP TABLE users; --</script>"
         sanitized = sanitize_input(malicious)
         # HTML tags should be removed from input
@@ -788,12 +939,14 @@ class TestSecurity(unittest.TestCase):
 
     def test_xss_prevention(self):
         from jobpilot.security import sanitize_input
+
         xss = "<script>alert('xss')</script>"
         sanitized = sanitize_input(xss)
         assert "<script>" not in sanitized, "Script tags should be removed"
 
     def test_password_strength_requirements(self):
         from jobpilot.security import validate_password
+
         # Too short
         valid, _ = validate_password("abc")
         assert valid is False
@@ -814,12 +967,14 @@ class TestSecurity(unittest.TestCase):
         from jobpilot.auth import create_access_token
         from jose import jwt
         from jobpilot.auth import SECRET_KEY, ALGORITHM
+
         token = create_access_token(data={"sub": 1})
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         assert "exp" in payload
 
     def test_file_upload_validation(self):
         from jobpilot.security import validate_file_upload
+
         # Valid file
         valid, _ = validate_file_upload("resume.pdf", "application/pdf", 1024)
         assert valid is True
@@ -827,13 +982,16 @@ class TestSecurity(unittest.TestCase):
         valid, _ = validate_file_upload("resume.exe", "application/octet-stream", 1024)
         assert valid is False
         # Too large
-        valid, _ = validate_file_upload("resume.pdf", "application/pdf", 20 * 1024 * 1024)
+        valid, _ = validate_file_upload(
+            "resume.pdf", "application/pdf", 20 * 1024 * 1024
+        )
         assert valid is False
 
 
 # =====================================================
 # RUN ALL TESTS
 # =====================================================
+
 
 def cleanup():
     TEST_DB = Path(__file__).resolve().parent / "test_qa.db"
@@ -851,11 +1009,21 @@ if __name__ == "__main__":
 
     # Add all test classes
     test_classes = [
-        TestModels, TestAuth, TestResumeAnalyzer, TestMatcher,
-        TestPdfParser, TestCoverLetterGenerator, TestSkillGapAnalyzer,
-        TestLinkedInAnalyzer, TestSalaryEstimator, TestCareerRoadmap,
-        TestCareerCoach, TestResumeVersionManager, TestCompanyInterviews,
-        TestDatabase, TestSecurity,
+        TestModels,
+        TestAuth,
+        TestResumeAnalyzer,
+        TestMatcher,
+        TestPdfParser,
+        TestCoverLetterGenerator,
+        TestSkillGapAnalyzer,
+        TestLinkedInAnalyzer,
+        TestSalaryEstimator,
+        TestCareerRoadmap,
+        TestCareerCoach,
+        TestResumeVersionManager,
+        TestCompanyInterviews,
+        TestDatabase,
+        TestSecurity,
     ]
 
     for test_class in test_classes:

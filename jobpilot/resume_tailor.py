@@ -2,8 +2,12 @@
 
 import re
 from jobpilot.resume_analyzer import (
-    _extract_skills, _detect_sections, _compute_ats_score,
-    _extract_contact, _estimate_experience_years, _extract_education,
+    _extract_skills,
+    _detect_sections,
+    _compute_ats_score,
+    _extract_contact,
+    _estimate_experience_years,
+    _extract_education,
     SKILL_DATABASE,
 )
 
@@ -39,21 +43,32 @@ def tailor_resume(
     # Compute original score
     sections = _detect_sections(resume_text)
     contact = _extract_contact(resume_text)
-    original_score = _compute_ats_score(text=resume_text, sections=sections,
-                                         skills=resume_skills, contact=contact)
+    original_score = _compute_ats_score(
+        text=resume_text, sections=sections, skills=resume_skills, contact=contact
+    )
 
     # Generate tailored resume
-    tailored_text = _generate_tailored_text(resume_text, sections, missing_keywords, all_job_skills)
+    tailored_text = _generate_tailored_text(
+        resume_text, sections, missing_keywords, all_job_skills
+    )
 
     # Compute tailored score
     tailored_sections = _detect_sections(tailored_text)
     tailored_skills = _extract_skills(tailored_text)
     tailored_contact = _extract_contact(tailored_text)
-    tailored_score = _compute_ats_score(text=tailored_text, sections=tailored_sections,
-                                         skills=tailored_skills, contact=tailored_contact)
+    tailored_score = _compute_ats_score(
+        text=tailored_text,
+        sections=tailored_sections,
+        skills=tailored_skills,
+        contact=tailored_contact,
+    )
 
     # Calculate improvement
-    improvement_pct = ((tailored_score - original_score) / original_score * 100) if original_score > 0 else 0
+    improvement_pct = (
+        ((tailored_score - original_score) / original_score * 100)
+        if original_score > 0
+        else 0
+    )
 
     # Track changes
     keywords_added = [k for k in missing_keywords if k in tailored_text.lower()]
@@ -88,7 +103,13 @@ def _generate_tailored_text(
 
         # Check if this is a section header
         is_header = False
-        for section_name in ["summary", "objective", "skills", "technical skills", "technologies"]:
+        for section_name in [
+            "summary",
+            "objective",
+            "skills",
+            "technical skills",
+            "technologies",
+        ]:
             if stripped.lower().startswith(section_name):
                 is_header = True
                 break
@@ -113,8 +134,13 @@ def _generate_tailored_text(
             # Check if this line contains skills (comma-separated)
             if "," in stripped and len(stripped.split(",")) >= 2:
                 # Check if this looks like a skills section
-                prev_lines = [l.strip().lower() for l in lines[:lines.index(line)] if l.strip()]
-                if any("skill" in l or "technolog" in l or "tech" in l for l in prev_lines[-2:]):
+                prev_lines = [
+                    l.strip().lower() for l in lines[: lines.index(line)] if l.strip()
+                ]
+                if any(
+                    "skill" in l or "technolog" in l or "tech" in l
+                    for l in prev_lines[-2:]
+                ):
                     enhanced_skills = _enhance_skills_line(stripped, missing_keywords)
                     tailored_lines.append(enhanced_skills)
                     skills_enhanced = True
@@ -139,7 +165,14 @@ def _generate_tailored_text(
 
         tailored_lines.insert(insert_idx, "")
         tailored_lines.insert(insert_idx + 1, "SKILLS")
-        tailored_lines.insert(insert_idx + 2, ", ".join(skills[:15] if (skills := _extract_skills(text := "\n".join(tailored_lines))) else missing_keywords[:10]))
+        tailored_lines.insert(
+            insert_idx + 2,
+            ", ".join(
+                skills[:15]
+                if (skills := _extract_skills(text := "\n".join(tailored_lines)))
+                else missing_keywords[:10]
+            ),
+        )
         tailored_lines.insert(insert_idx + 3, "")
 
     return "\n".join(tailored_lines)

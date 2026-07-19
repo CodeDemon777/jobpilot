@@ -43,7 +43,9 @@ class RSSFeedScraper(BaseScraper):
 
     source_name = "rss_feeds"
 
-    async def search(self, query: str, location: str = "", **kwargs) -> list[JobListing]:
+    async def search(
+        self, query: str, location: str = "", **kwargs
+    ) -> list[JobListing]:
         """Search across all configured RSS feeds."""
         feeds = kwargs.get("feeds", list(KNOWN_RSS_FEEDS.keys()))
         query_lower = query.lower()
@@ -65,7 +67,12 @@ class RSSFeedScraper(BaseScraper):
 
         # Filter by query if needed
         if query_lower:
-            all_jobs = [j for j in all_jobs if query_lower in j.title.lower() or query_lower in j.description.lower()]
+            all_jobs = [
+                j
+                for j in all_jobs
+                if query_lower in j.title.lower()
+                or query_lower in j.description.lower()
+            ]
 
         logger.info(f"RSS Feeds: found {len(all_jobs)} jobs across {len(feeds)} feeds")
         return all_jobs
@@ -76,6 +83,7 @@ class RSSFeedScraper(BaseScraper):
         try:
             response = await self._fetch(feed_info["url"])
             from bs4 import BeautifulSoup
+
             soup = BeautifulSoup(response.text, "xml")
 
             # Find all items/entries
@@ -98,12 +106,20 @@ class RSSFeedScraper(BaseScraper):
                     link = link_el.get("href", "") or link_el.get_text(strip=True)
 
                 # Extract description
-                desc_el = item.find("description") or item.find("summary") or item.find("content")
+                desc_el = (
+                    item.find("description")
+                    or item.find("summary")
+                    or item.find("content")
+                )
                 if desc_el:
                     description = desc_el.get_text(strip=True)[:1000]
 
                 # Extract date
-                date_el = item.find("pubDate") or item.find("published") or item.find("updated")
+                date_el = (
+                    item.find("pubDate")
+                    or item.find("published")
+                    or item.find("updated")
+                )
                 if date_el:
                     pub_date = date_el.get_text(strip=True)
 
@@ -111,21 +127,25 @@ class RSSFeedScraper(BaseScraper):
                     continue
 
                 skills = self._extract_skills(description)
-                remote_status = "remote" if "remote" in (title + description).lower() else "unknown"
+                remote_status = (
+                    "remote" if "remote" in (title + description).lower() else "unknown"
+                )
 
-                jobs.append(JobListing(
-                    company=feed_info["name"],
-                    title=title,
-                    location="Remote" if remote_status == "remote" else "Various",
-                    remote_status=remote_status,
-                    required_skills=skills,
-                    description=description,
-                    url=link,
-                    source="rss_feed",
-                    posted_date=pub_date,
-                    tech_stack=skills,
-                    application_url=link,
-                ))
+                jobs.append(
+                    JobListing(
+                        company=feed_info["name"],
+                        title=title,
+                        location="Remote" if remote_status == "remote" else "Various",
+                        remote_status=remote_status,
+                        required_skills=skills,
+                        description=description,
+                        url=link,
+                        source="rss_feed",
+                        posted_date=pub_date,
+                        tech_stack=skills,
+                        application_url=link,
+                    )
+                )
 
         except Exception as e:
             logger.warning(f"RSS parse failed for {feed_info['name']}: {e}")
@@ -156,18 +176,22 @@ class RSSFeedScraper(BaseScraper):
                     skills = tags if tags else self._extract_skills(desc)
                     remote_status = "remote" if item.get("remote", True) else "onsite"
 
-                    jobs.append(JobListing(
-                        company=company,
-                        title=title,
-                        location="Remote" if remote_status == "remote" else "Various",
-                        remote_status=remote_status,
-                        required_skills=skills,
-                        description=desc[:500],
-                        url=url,
-                        source="rss_feed",
-                        tech_stack=skills,
-                        application_url=url,
-                    ))
+                    jobs.append(
+                        JobListing(
+                            company=company,
+                            title=title,
+                            location=(
+                                "Remote" if remote_status == "remote" else "Various"
+                            ),
+                            remote_status=remote_status,
+                            required_skills=skills,
+                            description=desc[:500],
+                            url=url,
+                            source="rss_feed",
+                            tech_stack=skills,
+                            application_url=url,
+                        )
+                    )
 
         except Exception as e:
             logger.warning(f"JSON feed parse failed for {feed_info['name']}: {e}")

@@ -48,7 +48,10 @@ def validate_upload(file_bytes: bytes, filename: str) -> tuple[bool, str]:
 
     ext = Path(filename).suffix.lower()
     if ext not in ALLOWED_UPLOAD_TYPES:
-        return False, f"Unsupported file type: {ext}. Allowed: {', '.join(ALLOWED_UPLOAD_TYPES)}"
+        return (
+            False,
+            f"Unsupported file type: {ext}. Allowed: {', '.join(ALLOWED_UPLOAD_TYPES)}",
+        )
 
     if len(file_bytes) > MAX_FILE_SIZE:
         max_mb = MAX_FILE_SIZE / (1024 * 1024)

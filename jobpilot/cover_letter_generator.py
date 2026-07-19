@@ -3,7 +3,6 @@
 import re
 from jobpilot.resume_analyzer import _extract_skills, _detect_sections, _extract_contact
 
-
 # Cover letter templates by tone
 TEMPLATES = {
     "professional": {
@@ -66,11 +65,15 @@ def generate_cover_letter(
         skills_phrase = "software development and technical innovation"
 
     # Build skills list
-    skills_list = ", ".join(matched_skills[:6]) if matched_skills else "relevant technologies"
+    skills_list = (
+        ", ".join(matched_skills[:6]) if matched_skills else "relevant technologies"
+    )
 
     # Extract experience highlights
     experience_text = sections.get("experience", "")
-    experience_highlight = _extract_experience_highlight(experience_text, matched_skills)
+    experience_highlight = _extract_experience_highlight(
+        experience_text, matched_skills
+    )
 
     # Determine company quality (generic but professional)
     company_quality = _determine_company_quality(job_description, company)
@@ -80,15 +83,18 @@ def generate_cover_letter(
 
     # Generate letter sections
     opening = template["opening"].format(
-        role=role, company=company, skills_phrase=skills_phrase, candidate_name=candidate_name
+        role=role,
+        company=company,
+        skills_phrase=skills_phrase,
+        candidate_name=candidate_name,
     )
     body = template["body"].format(
-        skills_list=skills_list, experience_highlight=experience_highlight,
-        company=company, company_quality=company_quality
+        skills_list=skills_list,
+        experience_highlight=experience_highlight,
+        company=company,
+        company_quality=company_quality,
     )
-    closing = template["closing"].format(
-        company=company, candidate_name=candidate_name
-    )
+    closing = template["closing"].format(company=company, candidate_name=candidate_name)
 
     letter_text = f"{opening}\n\n{body}\n\n{closing}"
     word_count = len(letter_text.split())
@@ -128,17 +134,21 @@ def _extract_experience_highlight(experience_text: str, skills: list[str]) -> st
         # Clean up and return the most relevant line
         highlight = relevant_lines[0]
         # Remove leading bullet points or dashes
-        highlight = re.sub(r'^[\-•*]\s*', '', highlight)
+        highlight = re.sub(r"^[\-•*]\s*", "", highlight)
         return f"Specifically, {highlight.lower()}"
 
-    return "I have a strong track record of delivering results in fast-paced environments."
+    return (
+        "I have a strong track record of delivering results in fast-paced environments."
+    )
 
 
 def _determine_company_quality(job_description: str, company: str) -> str:
     """Determine a company quality statement based on job description."""
     desc_lower = job_description.lower()
 
-    if any(w in desc_lower for w in ["innovation", "innovative", "cutting-edge", "leading"]):
+    if any(
+        w in desc_lower for w in ["innovation", "innovative", "cutting-edge", "leading"]
+    ):
         return "innovation and cutting-edge technology"
     elif any(w in desc_lower for w in ["growth", "scale", "fast-paced"]):
         return "growth and excellence in technology"

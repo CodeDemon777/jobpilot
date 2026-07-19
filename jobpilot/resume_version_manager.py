@@ -12,8 +12,14 @@ class ResumeVersionManager:
     def __init__(self, db_path=None):
         self.db_path = db_path or DB_PATH
 
-    def create_version(self, user_id: int, name: str, raw_text: str,
-                       notes: str = "", original_resume_id: str = "") -> dict:
+    def create_version(
+        self,
+        user_id: int,
+        name: str,
+        raw_text: str,
+        notes: str = "",
+        original_resume_id: str = "",
+    ) -> dict:
         """
         Create a new resume version.
 
@@ -77,8 +83,12 @@ class ResumeVersionManager:
         match_diff = v2["match_rate"] - v1["match_rate"]
 
         # Compare skills
-        skills_v1 = set(json.loads(v1["skills"]) if isinstance(v1["skills"], str) else v1["skills"])
-        skills_v2 = set(json.loads(v2["skills"]) if isinstance(v2["skills"], str) else v2["skills"])
+        skills_v1 = set(
+            json.loads(v1["skills"]) if isinstance(v1["skills"], str) else v1["skills"]
+        )
+        skills_v2 = set(
+            json.loads(v2["skills"]) if isinstance(v2["skills"], str) else v2["skills"]
+        )
         new_skills = skills_v2 - skills_v1
         removed_skills = skills_v1 - skills_v2
 
@@ -106,14 +116,19 @@ class ResumeVersionManager:
                 "removed_skills": list(removed_skills),
                 "improved": ats_diff > 0,
             },
-            "recommendation": self._generate_comparison_recommendation(ats_diff, match_diff, new_skills),
+            "recommendation": self._generate_comparison_recommendation(
+                ats_diff, match_diff, new_skills
+            ),
         }
 
-    def _generate_comparison_recommendation(self, ats_diff: float, match_diff: float,
-                                            new_skills: set) -> str:
+    def _generate_comparison_recommendation(
+        self, ats_diff: float, match_diff: float, new_skills: set
+    ) -> str:
         """Generate recommendation based on comparison."""
         if ats_diff > 0 and match_diff > 0:
-            return "The newer version is better in both ATS score and match rate. Use it!"
+            return (
+                "The newer version is better in both ATS score and match rate. Use it!"
+            )
         elif ats_diff > 0:
             return "The newer version has a better ATS score but lower match rate. Consider combining strengths."
         elif match_diff > 0:

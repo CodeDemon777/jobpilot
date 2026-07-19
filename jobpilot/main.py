@@ -35,15 +35,23 @@ console = Console(force_terminal=True)
 
 # --- Scan Command ---
 
+
 @app.command()
 def scan(
-    source: str = typer.Option("all", help="Scraper source: greenhouse, remoteok, or all"),
+    source: str = typer.Option(
+        "all", help="Scraper source: greenhouse, remoteok, or all"
+    ),
     role: str = typer.Option("", help="Job title or role to search for"),
     location: str = typer.Option("", help="Location filter"),
     limit: int = typer.Option(50, help="Max jobs to return per source"),
 ):
     """Scan job boards for new opportunities."""
-    console.print(Panel(f"[bold blue]Scanning jobs: source={source}, role={role}, location={location}[/]", title="JobPilot Scan"))
+    console.print(
+        Panel(
+            f"[bold blue]Scanning jobs: source={source}, role={role}, location={location}[/]",
+            title="JobPilot Scan",
+        )
+    )
 
     async def _run():
         all_jobs = []
@@ -67,16 +75,21 @@ def scan(
             if is_new:
                 new_count += 1
                 # Auto-upsert company
-                company = db.Company(name=job.company, career_page=job.url.rsplit("/", 1)[0])
+                company = db.Company(
+                    name=job.company, career_page=job.url.rsplit("/", 1)[0]
+                )
                 db.upsert_company(company)
 
-        console.print(f"\n[bold green]Scan complete: {len(all_jobs)} jobs found, {new_count} new[/]")
+        console.print(
+            f"\n[bold green]Scan complete: {len(all_jobs)} jobs found, {new_count} new[/]"
+        )
         return all_jobs
 
     asyncio.run(_run())
 
 
 # --- Match Command ---
+
 
 @app.command()
 def match(
@@ -129,7 +142,11 @@ def match(
         else:
             score_style = f"[dim]{score_pct}[/]"
 
-        skills_str = ", ".join(result.missing_skills[:3]) if result.missing_skills else "all matched"
+        skills_str = (
+            ", ".join(result.missing_skills[:3])
+            if result.missing_skills
+            else "all matched"
+        )
         table.add_row(score_style, job.company, job.title, job.location, skills_str)
 
     console.print(table)
@@ -144,7 +161,9 @@ app.add_typer(track_app, name="track")
 
 @track_app.command("list")
 def track_list(
-    status: str = typer.Option("", help="Filter by status: discovered, applied, interview, etc."),
+    status: str = typer.Option(
+        "", help="Filter by status: discovered, applied, interview, etc."
+    ),
 ):
     """List tracked applications."""
     apps = db.get_applications(status=status)
@@ -161,8 +180,12 @@ def track_list(
     table.add_column("Updated", style="dim")
 
     status_colors = {
-        "discovered": "dim", "applied": "blue", "assessment": "yellow",
-        "interview": "green", "offer": "bold green", "rejected": "red",
+        "discovered": "dim",
+        "applied": "blue",
+        "assessment": "yellow",
+        "interview": "green",
+        "offer": "bold green",
+        "rejected": "red",
     }
 
     for app_item in apps:
@@ -203,7 +226,9 @@ def track_add(
         notes=notes,
     )
     db.upsert_application(app_item)
-    console.print(f"[green][OK] Tracking: {job.company} - {job.title} ({match_result.overall_score:.0%} match)[/]")
+    console.print(
+        f"[green][OK] Tracking: {job.company} - {job.title} ({match_result.overall_score:.0%} match)[/]"
+    )
 
 
 @track_app.command("update")
@@ -262,19 +287,23 @@ Salary: {profile.expected_salary}
 [bold]Preferred Locations:[/]
 {', '.join(profile.preferred_locations) or '(none)'}
 """
-    console.print(Panel(panel_content.strip(), title="Your Profile", border_style="blue"))
+    console.print(
+        Panel(panel_content.strip(), title="Your Profile", border_style="blue")
+    )
 
 
 @profile_app.command("edit")
 def profile_edit():
     """Open profile YAML in default editor."""
     from jobpilot.config import PROFILE_PATH
+
     PROFILE_PATH.parent.mkdir(parents=True, exist_ok=True)
     console.print(f"[dim]Edit your profile at: {PROFILE_PATH}[/]")
     console.print("[dim]Then run 'jobpilot profile show' to verify.[/]")
 
 
 # --- Companies Command ---
+
 
 @app.command("companies")
 def companies_list():
@@ -298,6 +327,7 @@ def companies_list():
 
 # --- Report Command ---
 
+
 @app.command()
 def report():
     """Show overall statistics."""
@@ -314,10 +344,13 @@ def report():
     for source in stats["top_sources"]:
         panel_content += f"\n  {source['source']}: {source['count']}"
 
-    console.print(Panel(panel_content.strip(), title="JobPilot Report", border_style="blue"))
+    console.print(
+        Panel(panel_content.strip(), title="JobPilot Report", border_style="blue")
+    )
 
 
 # --- Seed Command ---
+
 
 @app.command()
 def seed():
@@ -329,7 +362,16 @@ def seed():
         email="tivya@example.com",
         location="remote",
         country="global",
-        skills=["python", "javascript", "react", "fastapi", "docker", "aws", "postgresql", "git"],
+        skills=[
+            "python",
+            "javascript",
+            "react",
+            "fastapi",
+            "docker",
+            "aws",
+            "postgresql",
+            "git",
+        ],
         programming_languages=["python", "javascript", "typescript", "go"],
         frameworks=["fastapi", "react", "django", "node.js"],
         cloud_platforms=["aws", "docker", "kubernetes"],
@@ -343,46 +385,126 @@ def seed():
     print("[OK] Profile saved to data/profile.yaml")
 
     sample_jobs = [
-        JobListing(company="Stripe", title="Software Engineer, Payments", location="Remote", remote_status="remote",
-                   required_skills=["python", "ruby", "postgresql"], preferred_skills=["aws", "docker"],
-                   experience_years=3, description="Build payment infrastructure. Python/Ruby, PostgreSQL, AWS.",
-                   url="https://stripe.com/jobs/example1", source="greenhouse"),
-        JobListing(company="Vercel", title="Senior Frontend Engineer", location="Remote", remote_status="remote",
-                   required_skills=["react", "typescript", "next.js"], preferred_skills=["node.js", "vercel"],
-                   experience_years=5, description="Build the future of web deployment. React, TypeScript, Next.js.",
-                   url="https://vercel.com/jobs/example2", source="greenhouse"),
-        JobListing(company="Discord", title="Backend Engineer, Infrastructure", location="San Francisco, CA",
-                   remote_status="hybrid", required_skills=["python", "rust", "postgresql"], preferred_skills=["kubernetes"],
-                   experience_years=4, description="Scale Discord infrastructure. Python, Rust, PostgreSQL, K8s.",
-                   url="https://discord.com/careers/example3", source="greenhouse"),
-        JobListing(company="GitLab", title="Full Stack Developer", location="Remote", remote_status="remote",
-                   required_skills=["ruby", "javascript", "postgresql"], preferred_skills=["git", "docker"],
-                   experience_years=3, description="Contribute to GitLab. Ruby on Rails, JavaScript, PostgreSQL.",
-                   url="https://gitlab.com/jobs/example4", source="greenhouse"),
-        JobListing(company="Figma", title="Software Engineer, Design Tools", location="Remote", remote_status="remote",
-                   required_skills=["typescript", "webgl", "react"], preferred_skills=["c++", "wasm"],
-                   experience_years=4, description="Build collaborative design tools. TypeScript, WebGL, React.",
-                   url="https://figma.com/careers/example5", source="greenhouse"),
-        JobListing(company="RemoteOK", title="Python Developer, API", location="Remote", remote_status="remote",
-                   required_skills=["python", "fastapi", "postgresql"], preferred_skills=["redis", "docker"],
-                   experience_years=2, description="Build API services. Python, FastAPI, PostgreSQL, Redis.",
-                   url="https://remoteok.com/jobs/example6", source="remoteok"),
-        JobListing(company="Notion", title="Software Engineer, Core", location="Remote", remote_status="remote",
-                   required_skills=["typescript", "react", "node.js"], preferred_skills=["postgresql", "redis"],
-                   experience_years=3, description="Build Notion's core product. TypeScript, React, Node.js.",
-                   url="https://notion.so/careers/example7", source="greenhouse"),
-        JobListing(company="Ramp", title="Backend Engineer", location="New York, NY", remote_status="hybrid",
-                   required_skills=["python", "django", "postgresql"], preferred_skills=["aws", "terraform"],
-                   experience_years=3, description="Build finance tools. Python, Django, PostgreSQL, AWS.",
-                   url="https://ramp.com/careers/example8", source="greenhouse"),
-        JobListing(company="Cloudflare", title="Systems Engineer, Workers", location="Austin, TX",
-                   remote_status="hybrid", required_skills=["rust", "javascript", "go"], preferred_skills=["linux", "networking"],
-                   experience_years=5, description="Build Cloudflare Workers runtime. Rust, JS, Go.",
-                   url="https://cloudflare.com/careers/example9", source="greenhouse"),
-        JobListing(company="Scale AI", title="ML Engineer, Data Platform", location="San Francisco, CA",
-                   remote_status="hybrid", required_skills=["python", "pytorch", "spark"], preferred_skills=["kubernetes", "aws"],
-                   experience_years=4, description="Build ML data platform. Python, PyTorch, Spark.",
-                   url="https://scale.com/careers/example10", source="greenhouse"),
+        JobListing(
+            company="Stripe",
+            title="Software Engineer, Payments",
+            location="Remote",
+            remote_status="remote",
+            required_skills=["python", "ruby", "postgresql"],
+            preferred_skills=["aws", "docker"],
+            experience_years=3,
+            description="Build payment infrastructure. Python/Ruby, PostgreSQL, AWS.",
+            url="https://stripe.com/jobs/example1",
+            source="greenhouse",
+        ),
+        JobListing(
+            company="Vercel",
+            title="Senior Frontend Engineer",
+            location="Remote",
+            remote_status="remote",
+            required_skills=["react", "typescript", "next.js"],
+            preferred_skills=["node.js", "vercel"],
+            experience_years=5,
+            description="Build the future of web deployment. React, TypeScript, Next.js.",
+            url="https://vercel.com/jobs/example2",
+            source="greenhouse",
+        ),
+        JobListing(
+            company="Discord",
+            title="Backend Engineer, Infrastructure",
+            location="San Francisco, CA",
+            remote_status="hybrid",
+            required_skills=["python", "rust", "postgresql"],
+            preferred_skills=["kubernetes"],
+            experience_years=4,
+            description="Scale Discord infrastructure. Python, Rust, PostgreSQL, K8s.",
+            url="https://discord.com/careers/example3",
+            source="greenhouse",
+        ),
+        JobListing(
+            company="GitLab",
+            title="Full Stack Developer",
+            location="Remote",
+            remote_status="remote",
+            required_skills=["ruby", "javascript", "postgresql"],
+            preferred_skills=["git", "docker"],
+            experience_years=3,
+            description="Contribute to GitLab. Ruby on Rails, JavaScript, PostgreSQL.",
+            url="https://gitlab.com/jobs/example4",
+            source="greenhouse",
+        ),
+        JobListing(
+            company="Figma",
+            title="Software Engineer, Design Tools",
+            location="Remote",
+            remote_status="remote",
+            required_skills=["typescript", "webgl", "react"],
+            preferred_skills=["c++", "wasm"],
+            experience_years=4,
+            description="Build collaborative design tools. TypeScript, WebGL, React.",
+            url="https://figma.com/careers/example5",
+            source="greenhouse",
+        ),
+        JobListing(
+            company="RemoteOK",
+            title="Python Developer, API",
+            location="Remote",
+            remote_status="remote",
+            required_skills=["python", "fastapi", "postgresql"],
+            preferred_skills=["redis", "docker"],
+            experience_years=2,
+            description="Build API services. Python, FastAPI, PostgreSQL, Redis.",
+            url="https://remoteok.com/jobs/example6",
+            source="remoteok",
+        ),
+        JobListing(
+            company="Notion",
+            title="Software Engineer, Core",
+            location="Remote",
+            remote_status="remote",
+            required_skills=["typescript", "react", "node.js"],
+            preferred_skills=["postgresql", "redis"],
+            experience_years=3,
+            description="Build Notion's core product. TypeScript, React, Node.js.",
+            url="https://notion.so/careers/example7",
+            source="greenhouse",
+        ),
+        JobListing(
+            company="Ramp",
+            title="Backend Engineer",
+            location="New York, NY",
+            remote_status="hybrid",
+            required_skills=["python", "django", "postgresql"],
+            preferred_skills=["aws", "terraform"],
+            experience_years=3,
+            description="Build finance tools. Python, Django, PostgreSQL, AWS.",
+            url="https://ramp.com/careers/example8",
+            source="greenhouse",
+        ),
+        JobListing(
+            company="Cloudflare",
+            title="Systems Engineer, Workers",
+            location="Austin, TX",
+            remote_status="hybrid",
+            required_skills=["rust", "javascript", "go"],
+            preferred_skills=["linux", "networking"],
+            experience_years=5,
+            description="Build Cloudflare Workers runtime. Rust, JS, Go.",
+            url="https://cloudflare.com/careers/example9",
+            source="greenhouse",
+        ),
+        JobListing(
+            company="Scale AI",
+            title="ML Engineer, Data Platform",
+            location="San Francisco, CA",
+            remote_status="hybrid",
+            required_skills=["python", "pytorch", "spark"],
+            preferred_skills=["kubernetes", "aws"],
+            experience_years=4,
+            description="Build ML data platform. Python, PyTorch, Spark.",
+            url="https://scale.com/careers/example10",
+            source="greenhouse",
+        ),
     ]
 
     new_count = 0
@@ -405,7 +527,9 @@ app.add_typer(resume_app, name="resume")
 @resume_app.command("analyze")
 def resume_analyze(
     file: str = typer.Argument(help="Path to resume file (.txt, .md)"),
-    target_role: str = typer.Option("", help="Target role for gap analysis (e.g. 'backend engineer')"),
+    target_role: str = typer.Option(
+        "", help="Target role for gap analysis (e.g. 'backend engineer')"
+    ),
 ):
     """Analyze a resume for ATS compatibility, skills, and improvements."""
     from pathlib import Path
@@ -427,7 +551,12 @@ def resume_analyze(
         console.print("[red]File is empty.[/]")
         return
 
-    console.print(Panel(f"[bold blue]Analyzing resume: {file_path.name}[/]", title="JobPilot Resume Analyzer"))
+    console.print(
+        Panel(
+            f"[bold blue]Analyzing resume: {file_path.name}[/]",
+            title="JobPilot Resume Analyzer",
+        )
+    )
 
     # Run analysis
     result = analyze_resume(text, target_role=target_role)
@@ -466,7 +595,9 @@ def resume_analyze_text(
     """Analyze resume text pasted from stdin."""
     import hashlib
 
-    console.print("[dim]Paste your resume text, then press Ctrl+D (Unix) or Ctrl+Z (Windows) to finish:[/]")
+    console.print(
+        "[dim]Paste your resume text, then press Ctrl+D (Unix) or Ctrl+Z (Windows) to finish:[/]"
+    )
     try:
         text = sys.stdin.read()
     except KeyboardInterrupt:
@@ -477,7 +608,11 @@ def resume_analyze_text(
         console.print("[red]No text provided.[/]")
         return
 
-    console.print(Panel("[bold blue]Analyzing resume text...[/]", title="JobPilot Resume Analyzer"))
+    console.print(
+        Panel(
+            "[bold blue]Analyzing resume text...[/]", title="JobPilot Resume Analyzer"
+        )
+    )
 
     result = analyze_resume(text, target_role=target_role)
 
@@ -535,6 +670,7 @@ def resume_history():
 
 def _display_resume_analysis(result: ResumeAnalysisResult) -> None:
     """Display resume analysis results in the terminal."""
+
     # Scores
     def score_bar(score: float) -> str:
         pct = int(score * 100)
@@ -594,14 +730,21 @@ def _display_resume_analysis(result: ResumeAnalysisResult) -> None:
 
 # --- Serve Command ---
 
+
 @app.command()
 def serve(
     port: int = typer.Option(DEFAULT_PORT, help="Port for web dashboard"),
     host: str = typer.Option("127.0.0.1", help="Host to bind to"),
 ):
     """Start the web dashboard."""
-    console.print(Panel(f"[bold green]Starting JobPilot dashboard at http://{host}:{port}[/]", title="JobPilot Web"))
+    console.print(
+        Panel(
+            f"[bold green]Starting JobPilot dashboard at http://{host}:{port}[/]",
+            title="JobPilot Web",
+        )
+    )
     import uvicorn
+
     uvicorn.run("jobpilot.web.app:app", host=host, port=port, reload=True)
 
 

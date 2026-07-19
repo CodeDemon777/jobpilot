@@ -5,18 +5,42 @@ from typing import Optional
 from jobpilot import database as db
 from jobpilot.config import DB_PATH
 
-
 # Pre-loaded interview experiences for popular companies
 PRELOADED_INTERVIEWS = {
     "google": {
         "company": "Google",
         "roles": ["Software Engineer", "SRE", "Data Engineer"],
         "typical_rounds": [
-            {"round": 1, "type": "Phone Screen", "duration": "45 min", "topics": ["Coding basics", "Resume discussion"]},
-            {"round": 2, "type": "Technical Phone Screen", "duration": "60 min", "topics": ["Data structures", "Algorithms", "System design basics"]},
-            {"round": 3, "type": "Onsite - Coding", "duration": "45 min", "topics": ["DSA problems", "Optimization", "Edge cases"]},
-            {"round": 4, "type": "Onsite - System Design", "duration": "45 min", "topics": ["Distributed systems", "Scalability", "Trade-offs"]},
-            {"round": 5, "type": "Onsite - Behavioral", "duration": "45 min", "topics": ["Leadership", "Googleyness", "Conflict resolution"]},
+            {
+                "round": 1,
+                "type": "Phone Screen",
+                "duration": "45 min",
+                "topics": ["Coding basics", "Resume discussion"],
+            },
+            {
+                "round": 2,
+                "type": "Technical Phone Screen",
+                "duration": "60 min",
+                "topics": ["Data structures", "Algorithms", "System design basics"],
+            },
+            {
+                "round": 3,
+                "type": "Onsite - Coding",
+                "duration": "45 min",
+                "topics": ["DSA problems", "Optimization", "Edge cases"],
+            },
+            {
+                "round": 4,
+                "type": "Onsite - System Design",
+                "duration": "45 min",
+                "topics": ["Distributed systems", "Scalability", "Trade-offs"],
+            },
+            {
+                "round": 5,
+                "type": "Onsite - Behavioral",
+                "duration": "45 min",
+                "topics": ["Leadership", "Googleyness", "Conflict resolution"],
+            },
         ],
         "difficulty": 5,
         "common_questions": [
@@ -38,9 +62,24 @@ PRELOADED_INTERVIEWS = {
         "company": "Microsoft",
         "roles": ["Software Engineer", "SDE", "Program Manager"],
         "typical_rounds": [
-            {"round": 1, "type": "Phone Screen", "duration": "30 min", "topics": ["Resume review", "Basic technical questions"]},
-            {"round": 2, "type": "Technical Interview", "duration": "60 min", "topics": ["Coding problem", "Object-oriented design"]},
-            {"round": 3, "type": "Onsite Interviews", "duration": "4-5 hours", "topics": ["Coding", "System design", "Behavioral", "Azure knowledge"]},
+            {
+                "round": 1,
+                "type": "Phone Screen",
+                "duration": "30 min",
+                "topics": ["Resume review", "Basic technical questions"],
+            },
+            {
+                "round": 2,
+                "type": "Technical Interview",
+                "duration": "60 min",
+                "topics": ["Coding problem", "Object-oriented design"],
+            },
+            {
+                "round": 3,
+                "type": "Onsite Interviews",
+                "duration": "4-5 hours",
+                "topics": ["Coding", "System design", "Behavioral", "Azure knowledge"],
+            },
         ],
         "difficulty": 4,
         "common_questions": [
@@ -62,9 +101,24 @@ PRELOADED_INTERVIEWS = {
         "company": "Amazon",
         "roles": ["Software Development Engineer", "SDE", "Data Engineer"],
         "typical_rounds": [
-            {"round": 1, "type": "Online Assessment", "duration": "90 min", "topics": ["Coding problems", "Work style assessment"]},
-            {"round": 2, "type": "Phone Interview", "duration": "60 min", "topics": ["Coding", "Leadership Principles"]},
-            {"round": 3, "type": "Onsite (5 rounds)", "duration": "5-6 hours", "topics": ["Coding", "System design", "Behavioral (LP-focused)"]},
+            {
+                "round": 1,
+                "type": "Online Assessment",
+                "duration": "90 min",
+                "topics": ["Coding problems", "Work style assessment"],
+            },
+            {
+                "round": 2,
+                "type": "Phone Interview",
+                "duration": "60 min",
+                "topics": ["Coding", "Leadership Principles"],
+            },
+            {
+                "round": 3,
+                "type": "Onsite (5 rounds)",
+                "duration": "5-6 hours",
+                "topics": ["Coding", "System design", "Behavioral (LP-focused)"],
+            },
         ],
         "difficulty": 4,
         "common_questions": [
@@ -86,8 +140,18 @@ PRELOADED_INTERVIEWS = {
         "company": "Meta",
         "roles": ["Software Engineer", "Data Scientist", "ML Engineer"],
         "typical_rounds": [
-            {"round": 1, "type": "Phone Screen", "duration": "45 min", "topics": ["Technical screening", "Resume discussion"]},
-            {"round": 2, "type": "Onsite (4 rounds)", "duration": "4-5 hours", "topics": ["Coding (2 rounds)", "System design", "Behavioral"]},
+            {
+                "round": 1,
+                "type": "Phone Screen",
+                "duration": "45 min",
+                "topics": ["Technical screening", "Resume discussion"],
+            },
+            {
+                "round": 2,
+                "type": "Onsite (4 rounds)",
+                "duration": "4-5 hours",
+                "topics": ["Coding (2 rounds)", "System design", "Behavioral"],
+            },
         ],
         "difficulty": 4,
         "common_questions": [
@@ -109,9 +173,24 @@ PRELOADED_INTERVIEWS = {
         "company": "Apple",
         "roles": ["Software Engineer", "iOS Developer", "Backend Engineer"],
         "typical_rounds": [
-            {"round": 1, "type": "Phone Screen", "duration": "30 min", "topics": ["Technical basics", "Resume review"]},
-            {"round": 2, "type": "Technical Interview", "duration": "60 min", "topics": ["Coding", "System design"]},
-            {"round": 3, "type": "Onsite (4-5 rounds)", "duration": "4-5 hours", "topics": ["Coding", "System design", "Behavioral", "Domain-specific"]},
+            {
+                "round": 1,
+                "type": "Phone Screen",
+                "duration": "30 min",
+                "topics": ["Technical basics", "Resume review"],
+            },
+            {
+                "round": 2,
+                "type": "Technical Interview",
+                "duration": "60 min",
+                "topics": ["Coding", "System design"],
+            },
+            {
+                "round": 3,
+                "type": "Onsite (4-5 rounds)",
+                "duration": "4-5 hours",
+                "topics": ["Coding", "System design", "Behavioral", "Domain-specific"],
+            },
         ],
         "difficulty": 4,
         "common_questions": [
@@ -180,7 +259,11 @@ class CompanyInterviewManager:
         all_questions = []
         for e in experiences:
             try:
-                questions = json.loads(e["questions"]) if isinstance(e["questions"], str) else e["questions"]
+                questions = (
+                    json.loads(e["questions"])
+                    if isinstance(e["questions"], str)
+                    else e["questions"]
+                )
                 all_questions.extend(questions)
             except:
                 pass
@@ -193,9 +276,18 @@ class CompanyInterviewManager:
             "is_preloaded": False,
         }
 
-    def submit_experience(self, company: str, role: str, difficulty: int,
-                          rounds: list, questions: list, experience_text: str,
-                          tips: str, salary_range: str, user_id: int) -> int:
+    def submit_experience(
+        self,
+        company: str,
+        role: str,
+        difficulty: int,
+        rounds: list,
+        questions: list,
+        experience_text: str,
+        tips: str,
+        salary_range: str,
+        user_id: int,
+    ) -> int:
         """Submit a new interview experience."""
         return db.save_company_interview(
             company=company.lower(),

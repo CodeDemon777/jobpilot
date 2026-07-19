@@ -22,13 +22,26 @@ from jobpilot.scraper.company_careers import CompanyCareersScraper
 from jobpilot.scraper.rss_feeds import RSSFeedScraper
 
 __all__ = [
-    "BaseScraper", "GreenhouseScraper", "RemoteOKScraper",
-    "IndeedScraper", "LinkedInScraper", "WellfoundScraper",
-    "WeWorkRemotelyScraper", "YCJobsScraper", "LeverScraper",
-    "AshbyScraper", "NaukriScraper", "InternshalaScraper",
-    "CutshortScraper", "HirectScraper", "FounditScraper",
-    "GlassdoorScraper", "WorkableScraper", "CareerPagesScraper",
-    "CompanyCareersScraper", "RSSFeedScraper",
+    "BaseScraper",
+    "GreenhouseScraper",
+    "RemoteOKScraper",
+    "IndeedScraper",
+    "LinkedInScraper",
+    "WellfoundScraper",
+    "WeWorkRemotelyScraper",
+    "YCJobsScraper",
+    "LeverScraper",
+    "AshbyScraper",
+    "NaukriScraper",
+    "InternshalaScraper",
+    "CutshortScraper",
+    "HirectScraper",
+    "FounditScraper",
+    "GlassdoorScraper",
+    "WorkableScraper",
+    "CareerPagesScraper",
+    "CompanyCareersScraper",
+    "RSSFeedScraper",
 ]
 
 SCRAPERS = {

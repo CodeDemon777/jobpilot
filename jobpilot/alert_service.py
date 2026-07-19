@@ -4,7 +4,9 @@ from datetime import datetime, timedelta
 from jobpilot.models import AlertSubscription, JobListing
 
 
-def match_alert_to_jobs(alert: AlertSubscription, jobs: list[JobListing]) -> list[JobListing]:
+def match_alert_to_jobs(
+    alert: AlertSubscription, jobs: list[JobListing]
+) -> list[JobListing]:
     """
     Match an alert subscription against a list of jobs.
 
@@ -61,7 +63,9 @@ def _job_matches_alert(job: JobListing, alert: AlertSubscription) -> bool:
     return True
 
 
-def evaluate_alerts(alerts: list[dict], jobs: list[JobListing]) -> dict[int, list[JobListing]]:
+def evaluate_alerts(
+    alerts: list[dict], jobs: list[JobListing]
+) -> dict[int, list[JobListing]]:
     """
     Evaluate all active alerts against a job list.
 
@@ -122,7 +126,9 @@ def generate_alert_message(matched_jobs: list[JobListing], alert_role: str) -> s
     count = len(matched_jobs)
     role_text = f" for '{alert_role}'" if alert_role else ""
 
-    lines = [f"🔔 {count} new job{'s' if count > 1 else ''} match your alert{role_text}:\n"]
+    lines = [
+        f"🔔 {count} new job{'s' if count > 1 else ''} match your alert{role_text}:\n"
+    ]
 
     for i, job in enumerate(matched_jobs[:5], 1):
         lines.append(f"{i}. {job.title} at {job.company}")
@@ -131,7 +137,9 @@ def generate_alert_message(matched_jobs: list[JobListing], alert_role: str) -> s
         if job.salary_min or job.salary_max:
             salary = f"${job.salary_min:,}" if job.salary_min else ""
             if job.salary_max:
-                salary += f" - ${job.salary_max:,}" if salary else f"${job.salary_max:,}"
+                salary += (
+                    f" - ${job.salary_max:,}" if salary else f"${job.salary_max:,}"
+                )
             if salary:
                 lines.append(f"   💰 {salary}")
         lines.append("")
@@ -145,9 +153,21 @@ def generate_alert_message(matched_jobs: list[JobListing], alert_role: str) -> s
 def get_alert_frequency_options() -> list[dict]:
     """Get available frequency options with descriptions."""
     return [
-        {"value": "instant", "label": "Instant", "description": "Get notified immediately when a match is found"},
-        {"value": "daily", "label": "Daily", "description": "Receive a daily digest of matching jobs"},
-        {"value": "weekly", "label": "Weekly", "description": "Receive a weekly summary of matching jobs"},
+        {
+            "value": "instant",
+            "label": "Instant",
+            "description": "Get notified immediately when a match is found",
+        },
+        {
+            "value": "daily",
+            "label": "Daily",
+            "description": "Receive a daily digest of matching jobs",
+        },
+        {
+            "value": "weekly",
+            "label": "Weekly",
+            "description": "Receive a weekly summary of matching jobs",
+        },
     ]
 
 

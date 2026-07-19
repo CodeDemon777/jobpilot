@@ -25,6 +25,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/auth/login")
 
 class UserCreate(BaseModel):
     """User registration model."""
+
     email: str
     password: str
     name: str = ""
@@ -32,12 +33,14 @@ class UserCreate(BaseModel):
 
 class UserLogin(BaseModel):
     """User login model."""
+
     email: str
     password: str
 
 
 class UserResponse(BaseModel):
     """User response model (no password)."""
+
     id: int
     email: str
     name: str
@@ -47,6 +50,7 @@ class UserResponse(BaseModel):
 
 class Token(BaseModel):
     """JWT token response."""
+
     access_token: str
     refresh_token: str
     token_type: str = "bearer"
@@ -54,6 +58,7 @@ class Token(BaseModel):
 
 class TokenData(BaseModel):
     """Token payload data."""
+
     user_id: Optional[int] = None
     email: Optional[str] = None
 
@@ -74,7 +79,9 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     # JWT sub claim must be a string
     if "sub" in to_encode:
         to_encode["sub"] = str(to_encode["sub"])
-    expire = datetime.utcnow() + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
+    expire = datetime.utcnow() + (
+        expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    )
     to_encode.update({"exp": expire, "type": "access"})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
@@ -117,7 +124,9 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> TokenData:
     return decode_token(token)
 
 
-async def get_current_active_user(current_user: TokenData = Depends(get_current_user)) -> TokenData:
+async def get_current_active_user(
+    current_user: TokenData = Depends(get_current_user),
+) -> TokenData:
     """Get current active user (can add is_active check here)."""
     return current_user
 
@@ -126,6 +135,7 @@ def authenticate_user(email: str, password: str, db_path=None) -> Optional[dict]
     """Authenticate user with email and password."""
     from jobpilot import database as db
     from jobpilot.config import DB_PATH
+
     if db_path is None:
         db_path = DB_PATH
     user = db.get_user_by_email(email, db_path)
@@ -140,6 +150,7 @@ def register_user(email: str, password: str, name: str = "", db_path=None) -> di
     """Register a new user."""
     from jobpilot import database as db
     from jobpilot.config import DB_PATH
+
     if db_path is None:
         db_path = DB_PATH
 
@@ -153,7 +164,9 @@ def register_user(email: str, password: str, name: str = "", db_path=None) -> di
 
     # Hash password and create user
     hashed_password = get_password_hash(password)
-    user_id = db.create_user(email=email, password_hash=hashed_password, name=name, db_path=db_path)
+    user_id = db.create_user(
+        email=email, password_hash=hashed_password, name=name, db_path=db_path
+    )
 
     return {"id": user_id, "email": email, "name": name}
 

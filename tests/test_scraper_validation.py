@@ -16,10 +16,10 @@ from jobpilot.scraper.greenhouse import GreenhouseScraper, KNOWN_GREENHOUSE_BOAR
 from jobpilot.scraper.remoteok import RemoteOKScraper
 from jobpilot.models import JobListing
 
-
 # =====================================================
 # SCRAPER INFRASTRUCTURE TESTS
 # =====================================================
+
 
 class TestScraperInfrastructure(unittest.TestCase):
     def test_all_scrapers_registered(self):
@@ -29,24 +29,27 @@ class TestScraperInfrastructure(unittest.TestCase):
     def test_all_scrapers_inherit_base(self):
         """Verify all scrapers inherit from BaseScraper."""
         for name, scraper_cls in SCRAPERS.items():
-            assert issubclass(scraper_cls, BaseScraper), f"{name} does not inherit from BaseScraper"
+            assert issubclass(
+                scraper_cls, BaseScraper
+            ), f"{name} does not inherit from BaseScraper"
 
     def test_all_scrapers_have_search(self):
         """Verify all scrapers have a search method."""
         for name, scraper_cls in SCRAPERS.items():
-            assert hasattr(scraper_cls, 'search'), f"{name} missing search method"
+            assert hasattr(scraper_cls, "search"), f"{name} missing search method"
 
     def test_scraper_has_source_name(self):
         """Verify all scrapers have a source_name."""
         for name, scraper_cls in SCRAPERS.items():
             scraper = scraper_cls()
-            assert hasattr(scraper, 'source_name'), f"{name} missing source_name"
+            assert hasattr(scraper, "source_name"), f"{name} missing source_name"
             assert scraper.source_name, f"{name} has empty source_name"
 
 
 # =====================================================
 # GREENHOUSE SCRAPER TESTS
 # =====================================================
+
 
 class TestGreenhouseScraper(unittest.TestCase):
     def test_board_tokens_valid(self):
@@ -92,6 +95,7 @@ class TestGreenhouseScraper(unittest.TestCase):
 # REMOTEOK SCRAPER TESTS
 # =====================================================
 
+
 class TestRemoteOKScraper(unittest.TestCase):
     def test_scraper_instantiation(self):
         """Verify scraper can be instantiated."""
@@ -121,7 +125,11 @@ class TestRemoteOKScraper(unittest.TestCase):
     def test_parse_job_no_tags(self):
         """Verify job parsing works without tags."""
         scraper = RemoteOKScraper()
-        data = {"position": "Dev", "company": "Co", "description": "Python and React developer"}
+        data = {
+            "position": "Dev",
+            "company": "Co",
+            "description": "Python and React developer",
+        }
         job = scraper._parse_job(data)
         assert "python" in job.required_skills or "react" in job.required_skills
 
@@ -130,10 +138,12 @@ class TestRemoteOKScraper(unittest.TestCase):
 # JOB IMPORTER TESTS
 # =====================================================
 
+
 class TestJobImporter(unittest.TestCase):
     def test_source_detection(self):
         """Verify URL source detection works."""
         from jobpilot.job_importer import JobImporter
+
         importer = JobImporter()
 
         test_cases = [
@@ -155,6 +165,7 @@ class TestJobImporter(unittest.TestCase):
     def test_import_invalid_url(self):
         """Verify import handles invalid URLs gracefully."""
         from jobpilot.job_importer import JobImporter
+
         importer = JobImporter()
 
         async def test():
@@ -167,6 +178,7 @@ class TestJobImporter(unittest.TestCase):
 # =====================================================
 # COMPANY CAREERS TESTS
 # =====================================================
+
 
 class TestCompanyCareers(unittest.TestCase):
     def test_known_companies(self):
@@ -189,6 +201,7 @@ class TestCompanyCareers(unittest.TestCase):
 # =====================================================
 # RSS FEEDS TESTS
 # =====================================================
+
 
 class TestRSSFeeds(unittest.TestCase):
     def test_known_feeds(self):
@@ -213,13 +226,17 @@ class TestRSSFeeds(unittest.TestCase):
 # SCRAPER ERROR HANDLING TESTS
 # =====================================================
 
+
 class TestScraperErrorHandling(unittest.TestCase):
     def test_greenhouse_handles_invalid_board(self):
         """Verify Greenhouse scraper handles invalid board gracefully."""
+
         async def test():
             scraper = GreenhouseScraper()
             try:
-                jobs = await scraper.search(query="test", boards=["invalid_board_12345"])
+                jobs = await scraper.search(
+                    query="test", boards=["invalid_board_12345"]
+                )
                 # Should return empty list, not raise exception
                 assert isinstance(jobs, list)
             except Exception:
@@ -229,9 +246,12 @@ class TestScraperErrorHandling(unittest.TestCase):
 
     def test_remoteok_handles_network_error(self):
         """Verify RemoteOK scraper handles network errors gracefully."""
+
         async def test():
             scraper = RemoteOKScraper()
-            with patch.object(scraper, '_fetch', side_effect=Exception("Network error")):
+            with patch.object(
+                scraper, "_fetch", side_effect=Exception("Network error")
+            ):
                 try:
                     jobs = await scraper.search(query="test")
                     assert isinstance(jobs, list)
@@ -268,7 +288,9 @@ if __name__ == "__main__":
     result = runner.run(suite)
 
     print(f"\n{'='*60}")
-    print(f"Scraper Tests: {result.testsRun} run, {len(result.failures)} failures, {len(result.errors)} errors")
+    print(
+        f"Scraper Tests: {result.testsRun} run, {len(result.failures)} failures, {len(result.errors)} errors"
+    )
     print(f"{'='*60}")
 
     sys.exit(0 if result.wasSuccessful() else 1)

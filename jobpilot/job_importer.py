@@ -17,7 +17,9 @@ class JobImporter(BaseScraper):
 
     source_name = "import"
 
-    async def search(self, query: str, location: str = "", **kwargs) -> list[JobListing]:
+    async def search(
+        self, query: str, location: str = "", **kwargs
+    ) -> list[JobListing]:
         """Not used - we use import_from_url instead."""
         return []
 
@@ -102,7 +104,9 @@ class JobImporter(BaseScraper):
             description = desc_el.get_text(strip=True)[:1000]
 
         skills = self._extract_skills(description)
-        remote_status = "remote" if "remote" in (location + description).lower() else "onsite"
+        remote_status = (
+            "remote" if "remote" in (location + description).lower() else "onsite"
+        )
 
         return JobListing(
             company=company or "Unknown Company",
@@ -141,7 +145,9 @@ class JobImporter(BaseScraper):
             description = desc_el.get_text(strip=True)[:1000]
 
         skills = self._extract_skills(description)
-        remote_status = "remote" if "remote" in (location + description).lower() else "onsite"
+        remote_status = (
+            "remote" if "remote" in (location + description).lower() else "onsite"
+        )
 
         return JobListing(
             company=company or "Unknown Company",
@@ -180,7 +186,9 @@ class JobImporter(BaseScraper):
             description = desc_el.get_text(strip=True)[:1000]
 
         skills = self._extract_skills(description)
-        remote_status = "remote" if "remote" in (location + description).lower() else "onsite"
+        remote_status = (
+            "remote" if "remote" in (location + description).lower() else "onsite"
+        )
 
         return JobListing(
             company=company or "Unknown Company",
@@ -219,7 +227,9 @@ class JobImporter(BaseScraper):
             description = desc_el.get_text(strip=True)[:1000]
 
         skills = self._extract_skills(description)
-        remote_status = "remote" if "remote" in (location + description).lower() else "onsite"
+        remote_status = (
+            "remote" if "remote" in (location + description).lower() else "onsite"
+        )
 
         return JobListing(
             company=company or "Unknown Company",
@@ -258,7 +268,9 @@ class JobImporter(BaseScraper):
             description = desc_el.get_text(strip=True)[:1000]
 
         skills = self._extract_skills(description)
-        remote_status = "remote" if "remote" in (location + description).lower() else "onsite"
+        remote_status = (
+            "remote" if "remote" in (location + description).lower() else "onsite"
+        )
 
         return JobListing(
             company=company or "Unknown Company",
@@ -273,7 +285,9 @@ class JobImporter(BaseScraper):
             application_url=url,
         )
 
-    def _extract_generic_job(self, soup: BeautifulSoup, url: str, source: str) -> JobListing:
+    def _extract_generic_job(
+        self, soup: BeautifulSoup, url: str, source: str
+    ) -> JobListing:
         """Extract job details from any generic job page."""
         title = ""
         company = ""
@@ -308,7 +322,9 @@ class JobImporter(BaseScraper):
         description = body_text[:1000]
 
         skills = self._extract_skills(description)
-        remote_status = "remote" if "remote" in (location + description).lower() else "onsite"
+        remote_status = (
+            "remote" if "remote" in (location + description).lower() else "onsite"
+        )
 
         return JobListing(
             company=company or "Unknown Company",

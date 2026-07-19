@@ -145,6 +145,7 @@ class Company:
 @dataclass
 class Resume:
     """A stored resume record."""
+
     id: str = ""
     name: str = ""
     filename: str = ""
@@ -162,6 +163,7 @@ class Resume:
 @dataclass
 class CoverLetter:
     """A generated cover letter."""
+
     id: int = 0
     resume_id: str = ""
     job_id: str = ""
@@ -177,6 +179,7 @@ class CoverLetter:
 @dataclass
 class InterviewQuestion:
     """A generated interview question."""
+
     id: int = 0
     job_id: str = ""
     resume_id: str = ""
@@ -192,6 +195,7 @@ class InterviewQuestion:
 @dataclass
 class SkillGapReport:
     """A skill gap analysis report."""
+
     id: int = 0
     resume_id: str = ""
     job_id: str = ""
@@ -207,6 +211,7 @@ class SkillGapReport:
 @dataclass
 class LinkedInReport:
     """A LinkedIn profile analysis report."""
+
     id: int = 0
     headline: str = ""
     about: str = ""
@@ -222,6 +227,7 @@ class LinkedInReport:
 @dataclass
 class TailoredResume:
     """A tailored resume version."""
+
     id: int = 0
     original_resume_id: str = ""
     job_id: str = ""
@@ -237,6 +243,7 @@ class TailoredResume:
 @dataclass
 class AlertSubscription:
     """A job alert subscription."""
+
     id: int = 0
     role: str = ""
     location: str = ""
@@ -251,6 +258,7 @@ class AlertSubscription:
 @dataclass
 class ImprovementReport:
     """A resume improvement report."""
+
     resume_id: str = ""
     strengths: list[str] = field(default_factory=list)
     weaknesses: list[str] = field(default_factory=list)
@@ -263,6 +271,7 @@ class ImprovementReport:
 @dataclass
 class DashboardStats:
     """Dashboard statistics."""
+
     id: int = 0
     period: str = "all"
     total_jobs: int = 0
@@ -281,6 +290,7 @@ class DashboardStats:
 @dataclass
 class JobNotification:
     """A job notification for smart alerts."""
+
     id: int = 0
     job_id: str = ""
     notification_type: str = "new_match"
@@ -293,6 +303,7 @@ class JobNotification:
 @dataclass
 class JobScanHistory:
     """Record of a job scan operation."""
+
     id: int = 0
     source: str = ""
     query: str = ""

@@ -32,7 +32,9 @@ def analyze_skill_gap(
     if resume_text:
         resume_skills = list(set(resume_skills + _extract_skills(resume_text)))
     if job_description:
-        job_required_skills = list(set(job_required_skills + _extract_skills(job_description)))
+        job_required_skills = list(
+            set(job_required_skills + _extract_skills(job_description))
+        )
 
     # Normalize to lowercase
     resume_set = {s.lower().strip() for s in resume_skills}
@@ -102,13 +104,82 @@ def _build_alias_map() -> dict[str, str]:
 def _group_skills_by_category(skills: list[str]) -> list[dict]:
     """Group skills by category for learning recommendations."""
     categories = {
-        "Programming Languages": ["python", "javascript", "typescript", "java", "go", "rust", "c++", "c#", "ruby", "php", "swift", "kotlin", "scala", "r", "matlab"],
-        "Frontend": ["react", "vue", "angular", "svelte", "next.js", "html", "css", "sass", "tailwind", "bootstrap"],
-        "Backend": ["node.js", "django", "fastapi", "flask", "express", "spring", "rails", "asp.net", "graphql", "rest api"],
-        "DevOps": ["docker", "kubernetes", "terraform", "ansible", "jenkins", "github actions", "ci/cd", "nginx", "linux"],
+        "Programming Languages": [
+            "python",
+            "javascript",
+            "typescript",
+            "java",
+            "go",
+            "rust",
+            "c++",
+            "c#",
+            "ruby",
+            "php",
+            "swift",
+            "kotlin",
+            "scala",
+            "r",
+            "matlab",
+        ],
+        "Frontend": [
+            "react",
+            "vue",
+            "angular",
+            "svelte",
+            "next.js",
+            "html",
+            "css",
+            "sass",
+            "tailwind",
+            "bootstrap",
+        ],
+        "Backend": [
+            "node.js",
+            "django",
+            "fastapi",
+            "flask",
+            "express",
+            "spring",
+            "rails",
+            "asp.net",
+            "graphql",
+            "rest api",
+        ],
+        "DevOps": [
+            "docker",
+            "kubernetes",
+            "terraform",
+            "ansible",
+            "jenkins",
+            "github actions",
+            "ci/cd",
+            "nginx",
+            "linux",
+        ],
         "Cloud": ["aws", "gcp", "azure", "firebase", "heroku", "digitalocean"],
-        "Databases": ["postgresql", "mysql", "mongodb", "redis", "elasticsearch", "dynamodb", "sqlite", "cassandra", "neo4j"],
-        "Data & ML": ["machine learning", "deep learning", "nlp", "computer vision", "tensorflow", "pytorch", "pandas", "numpy", "spark", "hadoop"],
+        "Databases": [
+            "postgresql",
+            "mysql",
+            "mongodb",
+            "redis",
+            "elasticsearch",
+            "dynamodb",
+            "sqlite",
+            "cassandra",
+            "neo4j",
+        ],
+        "Data & ML": [
+            "machine learning",
+            "deep learning",
+            "nlp",
+            "computer vision",
+            "tensorflow",
+            "pytorch",
+            "pandas",
+            "numpy",
+            "spark",
+            "hadoop",
+        ],
         "Tools": ["git", "github", "gitlab", "jira", "figma", "postman", "vscode"],
     }
 
@@ -116,11 +187,13 @@ def _group_skills_by_category(skills: list[str]) -> list[dict]:
     for category, category_skills in categories.items():
         matched_in_category = [s for s in skills if s in category_skills]
         if matched_in_category:
-            result.append({
-                "category": category,
-                "skills": matched_in_category,
-                "count": len(matched_in_category),
-            })
+            result.append(
+                {
+                    "category": category,
+                    "skills": matched_in_category,
+                    "count": len(matched_in_category),
+                }
+            )
 
     # Add uncategorized skills
     categorized = set()
@@ -128,10 +201,12 @@ def _group_skills_by_category(skills: list[str]) -> list[dict]:
         categorized.update(cat)
     uncategorized = [s for s in skills if s not in categorized]
     if uncategorized:
-        result.append({
-            "category": "Other",
-            "skills": uncategorized,
-            "count": len(uncategorized),
-        })
+        result.append(
+            {
+                "category": "Other",
+                "skills": uncategorized,
+                "count": len(uncategorized),
+            }
+        )
 
     return result

@@ -74,7 +74,9 @@ def _compute_job_metrics(db_path: Path) -> dict:
             "total_jobs": total_jobs,
             "total_companies": total_companies,
             "by_source": [{"source": r["source"], "count": r["cnt"]} for r in sources],
-            "by_location": [{"location": r["location"], "count": r["cnt"]} for r in locations],
+            "by_location": [
+                {"location": r["location"], "count": r["cnt"]} for r in locations
+            ],
             "avg_match_score": round(avg_score, 3),
         }
     finally:
@@ -86,7 +88,9 @@ def _compute_resume_metrics(db_path: Path) -> dict:
     conn = db.get_connection(db_path)
     try:
         total_resumes = conn.execute("SELECT COUNT(*) FROM resumes").fetchone()[0]
-        total_analyses = conn.execute("SELECT COUNT(*) FROM resume_analyses").fetchone()[0]
+        total_analyses = conn.execute(
+            "SELECT COUNT(*) FROM resume_analyses"
+        ).fetchone()[0]
 
         # Average scores
         avg_ats = conn.execute(
@@ -123,7 +127,9 @@ def _compute_resume_metrics(db_path: Path) -> dict:
             "avg_quality_score": round(avg_quality, 3),
             "avg_technical_score": round(avg_technical, 3),
             "avg_hiring_readiness": round(avg_hiring, 3),
-            "score_distribution": [{"range": r["range"], "count": r["cnt"]} for r in score_ranges],
+            "score_distribution": [
+                {"range": r["range"], "count": r["cnt"]} for r in score_ranges
+            ],
         }
     finally:
         conn.close()
@@ -142,7 +148,9 @@ def _compute_application_metrics(db_path: Path) -> dict:
         status_dist = {r["status"]: r["cnt"] for r in statuses}
 
         # Calculate rates
-        interview_count = status_dist.get("interview", 0) + status_dist.get("assessment", 0)
+        interview_count = status_dist.get("interview", 0) + status_dist.get(
+            "assessment", 0
+        )
         offer_count = status_dist.get("offer", 0) + status_dist.get("accepted", 0)
         rejection_count = status_dist.get("rejected", 0)
 
@@ -182,7 +190,9 @@ def _compute_skills_metrics(db_path: Path = DB_PATH) -> dict:
         top_skills = sorted(skill_counts.items(), key=lambda x: x[1], reverse=True)[:10]
 
         # Get missing skills
-        missing_rows = conn.execute("SELECT missing_skills FROM resume_analyses").fetchall()
+        missing_rows = conn.execute(
+            "SELECT missing_skills FROM resume_analyses"
+        ).fetchall()
         missing_counts = {}
         for row in missing_rows:
             try:
@@ -193,7 +203,9 @@ def _compute_skills_metrics(db_path: Path = DB_PATH) -> dict:
             except (json.JSONDecodeError, TypeError):
                 continue
 
-        top_missing = sorted(missing_counts.items(), key=lambda x: x[1], reverse=True)[:10]
+        top_missing = sorted(missing_counts.items(), key=lambda x: x[1], reverse=True)[
+            :10
+        ]
 
         return {
             "top_skills": [{"skill": s, "count": c} for s, c in top_skills],
@@ -210,13 +222,16 @@ def _compute_application_timeline(db_path: Path = DB_PATH) -> list[dict]:
     try:
         thirty_days_ago = (datetime.now() - timedelta(days=30)).isoformat()
 
-        rows = conn.execute("""
+        rows = conn.execute(
+            """
             SELECT DATE(updated_date) as date, COUNT(*) as cnt
             FROM applications
             WHERE updated_date >= ?
             GROUP BY DATE(updated_date)
             ORDER BY date
-        """, (thirty_days_ago,)).fetchall()
+        """,
+            (thirty_days_ago,),
+        ).fetchall()
 
         # Fill in missing days
         timeline = {}
@@ -225,11 +240,13 @@ def _compute_application_timeline(db_path: Path = DB_PATH) -> list[dict]:
 
         result = []
         for i in range(30):
-            date = (datetime.now() - timedelta(days=29-i)).strftime("%Y-%m-%d")
-            result.append({
-                "date": date,
-                "count": timeline.get(date, 0),
-            })
+            date = (datetime.now() - timedelta(days=29 - i)).strftime("%Y-%m-%d")
+            result.append(
+                {
+                    "date": date,
+                    "count": timeline.get(date, 0),
+                }
+            )
 
         return result
     finally:
@@ -242,13 +259,16 @@ def _compute_match_trends(db_path: Path) -> list[dict]:
     try:
         thirty_days_ago = (datetime.now() - timedelta(days=30)).isoformat()
 
-        rows = conn.execute("""
+        rows = conn.execute(
+            """
             SELECT DATE(computed_at) as date, AVG(overall_score) as avg_score
             FROM match_results
             WHERE computed_at >= ?
             GROUP BY DATE(computed_at)
             ORDER BY date
-        """, (thirty_days_ago,)).fetchall()
+        """,
+            (thirty_days_ago,),
+        ).fetchall()
 
         trends = {}
         for r in rows:
@@ -256,11 +276,13 @@ def _compute_match_trends(db_path: Path) -> list[dict]:
 
         result = []
         for i in range(30):
-            date = (datetime.now() - timedelta(days=29-i)).strftime("%Y-%m-%d")
-            result.append({
-                "date": date,
-                "avg_score": trends.get(date, 0),
-            })
+            date = (datetime.now() - timedelta(days=29 - i)).strftime("%Y-%m-%d")
+            result.append(
+                {
+                    "date": date,
+                    "avg_score": trends.get(date, 0),
+                }
+            )
 
         return result
     finally:
@@ -274,7 +296,9 @@ def get_dashboard_summary(db_path: Path = DB_PATH) -> dict:
         total_jobs = conn.execute("SELECT COUNT(*) FROM jobs").fetchone()[0]
         total_apps = conn.execute("SELECT COUNT(*) FROM applications").fetchone()[0]
         total_resumes = conn.execute("SELECT COUNT(*) FROM resumes").fetchone()[0]
-        avg_match = conn.execute("SELECT COALESCE(AVG(overall_score), 0) FROM match_results").fetchone()[0]
+        avg_match = conn.execute(
+            "SELECT COALESCE(AVG(overall_score), 0) FROM match_results"
+        ).fetchone()[0]
 
         # Status counts
         statuses = conn.execute(
@@ -287,7 +311,8 @@ def get_dashboard_summary(db_path: Path = DB_PATH) -> dict:
             "total_applications": total_apps,
             "total_resumes": total_resumes,
             "avg_match_score": round(avg_match, 3),
-            "interviews": status_counts.get("interview", 0) + status_counts.get("assessment", 0),
+            "interviews": status_counts.get("interview", 0)
+            + status_counts.get("assessment", 0),
             "offers": status_counts.get("offer", 0) + status_counts.get("accepted", 0),
             "rejections": status_counts.get("rejected", 0),
         }

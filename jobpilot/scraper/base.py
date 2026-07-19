@@ -23,7 +23,9 @@ class BaseScraper(ABC):
         self._last_request_time: float = 0
 
     @abstractmethod
-    async def search(self, query: str, location: str = "", **kwargs) -> list[JobListing]:
+    async def search(
+        self, query: str, location: str = "", **kwargs
+    ) -> list[JobListing]:
         """Search for jobs matching the query."""
         ...
 
@@ -48,7 +50,9 @@ class BaseScraper(ABC):
             "Accept-Language": "en-US,en;q=0.5",
         }
         fetch_headers = {**default_headers, **(headers or {})}
-        async with httpx.AsyncClient(timeout=REQUEST_TIMEOUT, follow_redirects=True) as client:
+        async with httpx.AsyncClient(
+            timeout=REQUEST_TIMEOUT, follow_redirects=True
+        ) as client:
             try:
                 response = await client.get(url, headers=fetch_headers)
                 response.raise_for_status()
@@ -63,6 +67,7 @@ class BaseScraper(ABC):
     def _parse_salary(self, text: str) -> tuple[int, int, str]:
         """Parse salary range from text. Returns (min, max, currency)."""
         import re
+
         text = text.replace(",", "").replace(" ", "")
         currency = "USD"
         if "$" in text:
@@ -83,17 +88,60 @@ class BaseScraper(ABC):
     def _extract_skills(self, text: str) -> list[str]:
         """Extract skill keywords from text."""
         import re
+
         common_skills = [
-            "python", "javascript", "typescript", "java", "go", "rust", "c++", "c#",
-            "react", "vue", "angular", "node.js", "django", "fastapi", "flask",
-            "aws", "gcp", "azure", "docker", "kubernetes", "terraform",
-            "postgresql", "mysql", "mongodb", "redis", "elasticsearch",
-            "machine learning", "deep learning", "nlp", "computer vision",
-            "git", "ci/cd", "agile", "scrum", "rest", "graphql",
-            "html", "css", "sass", "tailwind",
-            "sql", "nosql", "data analysis", "etl",
-            "figma", "sketch", "adobe",
-            "tensorflow", "pytorch", "scikit-learn", "pandas", "numpy",
+            "python",
+            "javascript",
+            "typescript",
+            "java",
+            "go",
+            "rust",
+            "c++",
+            "c#",
+            "react",
+            "vue",
+            "angular",
+            "node.js",
+            "django",
+            "fastapi",
+            "flask",
+            "aws",
+            "gcp",
+            "azure",
+            "docker",
+            "kubernetes",
+            "terraform",
+            "postgresql",
+            "mysql",
+            "mongodb",
+            "redis",
+            "elasticsearch",
+            "machine learning",
+            "deep learning",
+            "nlp",
+            "computer vision",
+            "git",
+            "ci/cd",
+            "agile",
+            "scrum",
+            "rest",
+            "graphql",
+            "html",
+            "css",
+            "sass",
+            "tailwind",
+            "sql",
+            "nosql",
+            "data analysis",
+            "etl",
+            "figma",
+            "sketch",
+            "adobe",
+            "tensorflow",
+            "pytorch",
+            "scikit-learn",
+            "pandas",
+            "numpy",
         ]
         text_lower = text.lower()
         found = [skill for skill in common_skills if skill in text_lower]

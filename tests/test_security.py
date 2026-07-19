@@ -10,14 +10,19 @@ from fastapi.testclient import TestClient
 from jobpilot.web.app import app
 from jobpilot import database as db
 from jobpilot.auth import (
-    get_password_hash, verify_password, create_access_token,
-    create_refresh_token, decode_token, register_user,
+    get_password_hash,
+    verify_password,
+    create_access_token,
+    create_refresh_token,
+    decode_token,
+    register_user,
 )
 from jobpilot.security import (
-    sanitize_input, validate_email, validate_password,
+    sanitize_input,
+    validate_email,
+    validate_password,
     validate_file_upload,
 )
-
 
 client = TestClient(app)
 
@@ -25,6 +30,7 @@ client = TestClient(app)
 # =====================================================
 # SQL INJECTION TESTS
 # =====================================================
+
 
 class TestSQLInjection(unittest.TestCase):
     def test_search_injection(self):
@@ -38,7 +44,9 @@ class TestSQLInjection(unittest.TestCase):
         ]
         for query in malicious_queries:
             response = client.get(f"/api/jobs?q={query}")
-            assert response.status_code == 200, f"SQL injection failed for query: {query}"
+            assert (
+                response.status_code == 200
+            ), f"SQL injection failed for query: {query}"
 
     def test_profile_update_injection(self):
         """Test SQL injection in profile updates."""
@@ -54,9 +62,12 @@ class TestSQLInjection(unittest.TestCase):
     def test_resume_text_injection(self):
         """Test SQL injection in resume text."""
         malicious_text = "'; DROP TABLE resumes; --"
-        response = client.post("/api/resume/analyze", json={
-            "text": malicious_text,
-        })
+        response = client.post(
+            "/api/resume/analyze",
+            json={
+                "text": malicious_text,
+            },
+        )
         assert response.status_code == 200  # Should sanitize and process
 
     def test_cover_letter_injection(self):
@@ -75,6 +86,7 @@ class TestSQLInjection(unittest.TestCase):
 # XSS PREVENTION TESTS
 # =====================================================
 
+
 class TestXSSPrevention(unittest.TestCase):
     def test_script_tag_sanitization(self):
         """Test that script tags are removed."""
@@ -87,7 +99,9 @@ class TestXSSPrevention(unittest.TestCase):
         for xss in xss_inputs:
             sanitized = sanitize_input(xss)
             assert "<script>" not in sanitized, f"Script tag not removed: {xss}"
-            assert "javascript:" not in sanitized, f"Javascript protocol not removed: {xss}"
+            assert (
+                "javascript:" not in sanitized
+            ), f"Javascript protocol not removed: {xss}"
 
     def test_html_tag_removal(self):
         """Test that HTML tags are removed."""
@@ -113,6 +127,7 @@ class TestXSSPrevention(unittest.TestCase):
 # =====================================================
 # AUTHENTICATION SECURITY TESTS
 # =====================================================
+
 
 class TestAuthSecurity(unittest.TestCase):
     def test_password_hashing(self):
@@ -144,6 +159,7 @@ class TestAuthSecurity(unittest.TestCase):
         # Decode and verify it's a refresh token
         from jose import jwt
         from jobpilot.auth import SECRET_KEY, ALGORITHM
+
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         assert payload.get("type") == "refresh"
 
@@ -163,7 +179,11 @@ class TestAuthSecurity(unittest.TestCase):
             "/api/coach/ask",
         ]
         for route in protected_routes:
-            response = client.get(route) if "generate" not in route and "ask" not in route else client.post(route, json={})
+            response = (
+                client.get(route)
+                if "generate" not in route and "ask" not in route
+                else client.post(route, json={})
+            )
             assert response.status_code == 401, f"Route {route} should require auth"
 
 
@@ -171,11 +191,23 @@ class TestAuthSecurity(unittest.TestCase):
 # INPUT VALIDATION TESTS
 # =====================================================
 
+
 class TestInputValidation(unittest.TestCase):
     def test_email_validation(self):
         """Test email validation."""
-        valid_emails = ["test@example.com", "user.name@domain.co", "user+tag@domain.com"]
-        invalid_emails = ["", "invalid", "@domain.com", "user@", "user@domain", "user@.com"]
+        valid_emails = [
+            "test@example.com",
+            "user.name@domain.co",
+            "user+tag@domain.com",
+        ]
+        invalid_emails = [
+            "",
+            "invalid",
+            "@domain.com",
+            "user@",
+            "user@domain",
+            "user@.com",
+        ]
 
         for email in valid_emails:
             assert validate_email(email) is True, f"Should be valid: {email}"
@@ -213,7 +245,9 @@ class TestInputValidation(unittest.TestCase):
         assert valid is False, "Should reject .exe files"
 
         # Too large (exceeds 10MB limit)
-        valid, _ = validate_file_upload("resume.pdf", "application/pdf", 15 * 1024 * 1024)
+        valid, _ = validate_file_upload(
+            "resume.pdf", "application/pdf", 15 * 1024 * 1024
+        )
         assert valid is False, "Should reject files over 10MB"
 
     def test_sanitize_input(self):
@@ -231,23 +265,24 @@ class TestInputValidation(unittest.TestCase):
 # AUTHORIZATION TESTS
 # =====================================================
 
+
 class TestAuthorization(unittest.TestCase):
     def test_user_cannot_access_admin(self):
         """Test that regular users cannot access admin endpoints."""
         import os
+
         # Register and login with unique email
         email = f"regular_{os.urandom(4).hex()}@example.com"
         register_user(email, "Pass123!", "Regular")
-        response = client.post("/api/auth/login", data={
-            "username": email,
-            "password": "Pass123!"
-        })
+        response = client.post(
+            "/api/auth/login", data={"username": email, "password": "Pass123!"}
+        )
         token = response.json()["access_token"]
 
         # Try admin endpoint
-        response = client.get("/api/admin/stats", headers={
-            "Authorization": f"Bearer {token}"
-        })
+        response = client.get(
+            "/api/admin/stats", headers={"Authorization": f"Bearer {token}"}
+        )
         assert response.status_code == 403
 
     def test_unauthenticated_cannot_access_protected(self):
@@ -258,7 +293,11 @@ class TestAuthorization(unittest.TestCase):
             "/api/coach/ask",
         ]
         for route in protected:
-            response = client.get(route) if "generate" not in route and "ask" not in route else client.post(route, json={})
+            response = (
+                client.get(route)
+                if "generate" not in route and "ask" not in route
+                else client.post(route, json={})
+            )
             assert response.status_code == 401
 
 
@@ -266,10 +305,12 @@ class TestAuthorization(unittest.TestCase):
 # RATE LIMITING TESTS
 # =====================================================
 
+
 class TestRateLimiting(unittest.TestCase):
     def test_rate_limit_exists(self):
         """Test that rate limiter is configured."""
         from jobpilot.security import limiter
+
         assert limiter is not None
 
     def test_cors_configured(self):
@@ -283,31 +324,32 @@ class TestRateLimiting(unittest.TestCase):
 # DATA INTEGRITY TESTS
 # =====================================================
 
+
 class TestDataIntegrity(unittest.TestCase):
     def test_password_not_in_user_response(self):
         """Test that password hash is not returned in user responses."""
         import os
+
         email = f"integrity_{os.urandom(4).hex()}@example.com"
         register_user(email, "Pass123!", "Test")
-        response = client.post("/api/auth/login", data={
-            "username": email,
-            "password": "Pass123!"
-        })
+        response = client.post(
+            "/api/auth/login", data={"username": email, "password": "Pass123!"}
+        )
         token = response.json()["access_token"]
 
-        response = client.get("/api/auth/me", headers={
-            "Authorization": f"Bearer {token}"
-        })
+        response = client.get(
+            "/api/auth/me", headers={"Authorization": f"Bearer {token}"}
+        )
         data = response.json()
         assert "password" not in data
         assert "password_hash" not in data
 
     def test_sensitive_data_not_in_logs(self):
         """Test that sensitive data is not exposed in error messages."""
-        response = client.post("/api/auth/login", data={
-            "username": "nonexistent@test.com",
-            "password": "WrongPassword"
-        })
+        response = client.post(
+            "/api/auth/login",
+            data={"username": "nonexistent@test.com", "password": "WrongPassword"},
+        )
         # Error message should not reveal whether user exists
         assert response.status_code == 401
 
@@ -323,8 +365,12 @@ if __name__ == "__main__":
     suite = unittest.TestSuite()
 
     test_classes = [
-        TestSQLInjection, TestXSSPrevention, TestAuthSecurity,
-        TestInputValidation, TestAuthorization, TestRateLimiting,
+        TestSQLInjection,
+        TestXSSPrevention,
+        TestAuthSecurity,
+        TestInputValidation,
+        TestAuthorization,
+        TestRateLimiting,
         TestDataIntegrity,
     ]
 
@@ -335,7 +381,9 @@ if __name__ == "__main__":
     result = runner.run(suite)
 
     print(f"\n{'='*60}")
-    print(f"Security Tests: {result.testsRun} run, {len(result.failures)} failures, {len(result.errors)} errors")
+    print(
+        f"Security Tests: {result.testsRun} run, {len(result.failures)} failures, {len(result.errors)} errors"
+    )
     print(f"{'='*60}")
 
     sys.exit(0 if result.wasSuccessful() else 1)
