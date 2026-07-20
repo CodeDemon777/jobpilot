@@ -1123,10 +1123,24 @@ async function addToAutoApply(jobId) {
         showToast('Error adding job to queue');
     }
 }
+
+async function processAllQueued() {
+    showToast('Processing queued applications...');
+    try {
+        const queue = await api('GET', '/api/auto-apply/queue?status=queued');
+        for (const item of queue.items) {
+            await api('POST', `/api/auto-apply/process/${item.id}`);
+        }
+        showToast('All queued applications processed!');
+        loadAutoApplyQueue();
+    } catch (err) {
+        showToast('Error processing applications');
+    }
+}
 async function loadAutoApplyQueue() {
     try {
-        const queue = await api('GET', '/api/auto-apply/queue');
-        const stats = await api('GET', '/api/auto-apply/stats');
+        const queue = await api('GET', '/api/auto-apply/queue') || { items: [], total: 0 };
+        const stats = await api('GET', '/api/auto-apply/stats') || { total: 0, ready: 0, pending_submission: 0, submitted: 0 };
 
         // Display stats
         document.getElementById('auto-apply-stats').innerHTML = `

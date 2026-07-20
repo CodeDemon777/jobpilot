@@ -1867,13 +1867,13 @@ class AutoApplyRequest(BaseModel):
 
 
 @app.post("/api/auto-apply/add")
-async def add_to_auto_apply(request: AutoApplyRequest, current_user: TokenData = Depends(get_current_user)):
+async def add_to_auto_apply(request: AutoApplyRequest):
     """Add a job to the auto-apply queue."""
     from jobpilot.auto_apply import AutoApplyQueue
 
     queue = AutoApplyQueue()
     item = queue.create_queue_item(
-        user_id=current_user.user_id,
+        user_id=1,
         job_id=request.job_id,
         preferences=request.preferences,
     )
@@ -1881,7 +1881,7 @@ async def add_to_auto_apply(request: AutoApplyRequest, current_user: TokenData =
 
 
 @app.post("/api/auto-apply/process/{queue_id}")
-async def process_auto_apply(queue_id: int, current_user: TokenData = Depends(get_current_user)):
+async def process_auto_apply(queue_id: int):
     """Process a queue item through the preparation pipeline."""
     from jobpilot.auto_apply import AutoApplyQueue
 
@@ -1891,7 +1891,7 @@ async def process_auto_apply(queue_id: int, current_user: TokenData = Depends(ge
 
 
 @app.post("/api/auto-apply/{queue_id}/approve")
-async def approve_auto_apply(queue_id: int, current_user: TokenData = Depends(get_current_user)):
+async def approve_auto_apply(queue_id: int):
     """Approve an application for submission."""
     from jobpilot.auto_apply import AutoApplyQueue
 
@@ -1901,7 +1901,7 @@ async def approve_auto_apply(queue_id: int, current_user: TokenData = Depends(ge
 
 
 @app.post("/api/auto-apply/{queue_id}/submit")
-async def submit_auto_apply(queue_id: int, current_user: TokenData = Depends(get_current_user)):
+async def submit_auto_apply(queue_id: int):
     """Mark an application as submitted."""
     from jobpilot.auto_apply import AutoApplyQueue
 
@@ -1911,7 +1911,7 @@ async def submit_auto_apply(queue_id: int, current_user: TokenData = Depends(get
 
 
 @app.post("/api/auto-apply/{queue_id}/cancel")
-async def cancel_auto_apply(queue_id: int, current_user: TokenData = Depends(get_current_user)):
+async def cancel_auto_apply(queue_id: int):
     """Cancel an application in the queue."""
     from jobpilot.auto_apply import AutoApplyQueue
 
@@ -1921,17 +1921,17 @@ async def cancel_auto_apply(queue_id: int, current_user: TokenData = Depends(get
 
 
 @app.get("/api/auto-apply/queue")
-async def get_auto_apply_queue(status: str = None, current_user: TokenData = Depends(get_current_user)):
+async def get_auto_apply_queue(status: str = None):
     """Get all items in the auto-apply queue."""
     from jobpilot.auto_apply import AutoApplyQueue
 
     queue = AutoApplyQueue()
-    items = queue.get_user_queue(current_user.user_id, status)
+    items = queue.get_user_queue(1, status)
     return {"items": items, "total": len(items)}
 
 
 @app.get("/api/auto-apply/queue/{queue_id}")
-async def get_auto_apply_item(queue_id: int, current_user: TokenData = Depends(get_current_user)):
+async def get_auto_apply_item(queue_id: int):
     """Get a specific queue item."""
     from jobpilot.auto_apply import AutoApplyQueue
 
@@ -1943,16 +1943,16 @@ async def get_auto_apply_item(queue_id: int, current_user: TokenData = Depends(g
 
 
 @app.get("/api/auto-apply/stats")
-async def get_auto_apply_stats(current_user: TokenData = Depends(get_current_user)):
+async def get_auto_apply_stats():
     """Get queue statistics."""
     from jobpilot.auto_apply import AutoApplyQueue
 
     queue = AutoApplyQueue()
-    return queue.get_queue_stats(current_user.user_id)
+    return queue.get_queue_stats(1)
 
 
 @app.delete("/api/auto-apply/{queue_id}")
-async def delete_auto_apply(queue_id: int, current_user: TokenData = Depends(get_current_user)):
+async def delete_auto_apply(queue_id: int):
     """Delete an item from the auto-apply queue."""
     from jobpilot.auto_apply import AutoApplyQueue
 
