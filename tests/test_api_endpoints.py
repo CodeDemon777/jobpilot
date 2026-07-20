@@ -24,13 +24,16 @@ TEST_PASSWORD = "TestPass123!"
 
 def get_auth_token():
     """Get authentication token for testing."""
+    import os
+    # Use unique email to avoid conflicts
+    test_email = f"qa_test_{os.urandom(4).hex()}@example.com"
     try:
-        register_user(TEST_EMAIL, TEST_PASSWORD, "QA Tester")
+        register_user(test_email, TEST_PASSWORD, "QA Tester")
     except Exception:
-        pass  # User may already exist
+        pass
 
     response = client.post(
-        "/api/auth/login", data={"username": TEST_EMAIL, "password": TEST_PASSWORD}
+        "/api/auth/login", data={"username": test_email, "password": TEST_PASSWORD}
     )
     if response.status_code == 200:
         return response.json()["access_token"]
@@ -72,16 +75,22 @@ class TestAuthAPI(unittest.TestCase):
         assert response.status_code == 400
 
     def test_login_success(self):
+        import os
+        email = f"login_test_{os.urandom(4).hex()}@example.com"
+        register_user(email, TEST_PASSWORD, "Login Test")
         response = client.post(
-            "/api/auth/login", data={"username": TEST_EMAIL, "password": TEST_PASSWORD}
+            "/api/auth/login", data={"username": email, "password": TEST_PASSWORD}
         )
         assert response.status_code == 200
         assert "access_token" in response.json()
 
     def test_login_wrong_password(self):
+        import os
+        email = f"wrong_test_{os.urandom(4).hex()}@example.com"
+        register_user(email, TEST_PASSWORD, "Wrong Test")
         response = client.post(
             "/api/auth/login",
-            data={"username": TEST_EMAIL, "password": "WrongPassword"},
+            data={"username": email, "password": "WrongPassword"},
         )
         assert response.status_code == 401
 
@@ -95,8 +104,11 @@ class TestAuthAPI(unittest.TestCase):
         assert "email" in response.json()
 
     def test_refresh_token(self):
+        import os
+        email = f"refresh_test_{os.urandom(4).hex()}@example.com"
+        register_user(email, TEST_PASSWORD, "Refresh Test")
         response = client.post(
-            "/api/auth/login", data={"username": TEST_EMAIL, "password": TEST_PASSWORD}
+            "/api/auth/login", data={"username": email, "password": TEST_PASSWORD}
         )
         refresh_token = response.json()["refresh_token"]
         response = client.post(f"/api/auth/refresh?refresh_token={refresh_token}")

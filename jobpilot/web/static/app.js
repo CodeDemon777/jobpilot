@@ -952,14 +952,17 @@ function renderJobCard(job) {
     const missing = (job.missing_skills || []).slice(0, 4);
 
     return `
-        <div class="job-card" onclick="window.open('${job.url || '#'}', '_blank')">
+        <div class="job-card">
             <div class="job-header">
                 <div>
-                    <div class="job-title">${job.title}</div>
+                    <div class="job-title" onclick="window.open('${job.url || '#'}', '_blank')">${job.title}</div>
                     <div class="job-company">${job.company}</div>
                     <div class="job-meta">${job.location || 'Unknown'} · ${job.source} · ${job.remote_status || ''}</div>
                 </div>
-                <div class="job-score ${scoreClass}">${scorePct}%</div>
+                <div style="display:flex;gap:0.5rem;align-items:center">
+                    <div class="job-score ${scoreClass}">${scorePct}%</div>
+                    <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();addToAutoApply('${job.id}')">Add to Queue</button>
+                </div>
             </div>
             <div class="job-skills">
                 ${skills.map(s => `<span class="skill-tag">${s}</span>`).join('')}
@@ -1095,6 +1098,7 @@ function buildProfileDataFromForm() {
 function loadPage(page) {
     if (page === 'dashboard') loadDashboard();
     else if (page === 'jobs') loadJobs();
+    else if (page === 'auto-apply') loadAutoApplyQueue();
     else if (page === 'applications') loadApplications();
     else if (page === 'profile') loadProfile();
     else if (page === 'resume') loadResumeHistory();
@@ -1108,6 +1112,104 @@ function refreshPage() {
     const activePage = document.querySelector('.nav-link.active')?.dataset?.page || 'dashboard';
     loadPage(activePage);
     showToast('Data refreshed!');
+}
+
+// --- Auto Apply Queue ---
+async function addToAutoApply(jobId) {
+    try {
+        await api('POST', '/api/auto-apply/add', { job_id: jobId });
+        showToast('Job added to auto-apply queue!');
+    } catch (err) {
+        showToast('Error adding job to queue');
+    }
+}
+async function loadAutoApplyQueue() {
+    try {
+        const queue = await api('GET', '/api/auto-apply/queue');
+        const stats = await api('GET', '/api/auto-apply/stats');
+
+        // Display stats
+        document.getElementById('auto-apply-stats').innerHTML = `
+            <div class="stat-card"><div class="label">Total</div><div class="value blue">${stats.total}</div></div>
+            <div class="stat-card"><div class="label">Ready</div><div class="value green">${stats.ready}</div></div>
+            <div class="stat-card"><div class="label">Pending</div><div class="value yellow">${stats.pending_submission}</div></div>
+            <div class="stat-card"><div class="label">Submitted</div><div class="value green">${stats.submitted}</div></div>
+        `;
+
+        // Display queue items
+        if (queue.items.length === 0) {
+            document.getElementById('auto-apply-list').innerHTML = '<div class="empty-state">No jobs in queue. Add jobs from the Jobs page.</div>';
+            return;
+        }
+
+        document.getElementById('auto-apply-list').innerHTML = queue.items.map(item => `
+            <div class="job-card">
+                <div class="job-header">
+                    <div>
+                        <div class="job-title">Job ID: ${item.job_id}</div>
+                        <div class="job-meta">Status: <span class="skill-tag">${item.status}</span></div>
+                    </div>
+                    <div class="job-actions">
+                        ${item.status === 'ready' ? `<button class="btn btn-primary" onclick="approveAutoApply(${item.id})">Approve</button>` : ''}
+                        ${item.status === 'pending_submission' ? `<button class="btn btn-primary" onclick="submitAutoApply(${item.id})">Mark Submitted</button>` : ''}
+                        ${item.status !== 'submitted' && item.status !== 'cancelled' ? `<button class="btn btn-secondary" onclick="cancelAutoApply(${item.id})">Cancel</button>` : ''}
+                    </div>
+                </div>
+                <div class="job-meta">
+                    ${item.resume_tailored ? '<span class="skill-tag">Resume Tailored</span>' : ''}
+                    ${item.cover_letter_generated ? '<span class="skill-tag">Cover Letter Ready</span>' : ''}
+                    ${item.application_ready ? '<span class="skill-tag">Application Ready</span>' : ''}
+                </div>
+            </div>
+        `).join('');
+    } catch (err) {
+        console.error('Error loading auto-apply queue:', err);
+    }
+}
+
+async function processAllQueued() {
+    showToast('Processing queued applications...');
+    try {
+        const queue = await api('GET', '/api/auto-apply/queue?status=queued');
+        for (const item of queue.items) {
+            await api('POST', `/api/auto-apply/process/${item.id}`);
+        }
+        showToast('All queued applications processed!');
+        loadAutoApplyQueue();
+    } catch (err) {
+        showToast('Error processing applications');
+    }
+}
+
+async function approveAutoApply(id) {
+    try {
+        await api('POST', `/api/auto-apply/${id}/approve`);
+        showToast('Application approved!');
+        loadAutoApplyQueue();
+    } catch (err) {
+        showToast('Error approving application');
+    }
+}
+
+async function submitAutoApply(id) {
+    try {
+        await api('POST', `/api/auto-apply/${id}/submit`);
+        showToast('Application submitted!');
+        loadAutoApplyQueue();
+    } catch (err) {
+        showToast('Error submitting application');
+    }
+}
+
+async function cancelAutoApply(id) {
+    if (!confirm('Cancel this application?')) return;
+    try {
+        await api('DELETE', `/api/auto-apply/${id}`);
+        showToast('Application cancelled');
+        loadAutoApplyQueue();
+    } catch (err) {
+        showToast('Error cancelling application');
+    }
 }
 
 // Check authentication on load

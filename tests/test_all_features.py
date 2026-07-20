@@ -3647,13 +3647,15 @@ test("Auth: duplicate email rejected", test_register_duplicate_email)
 def test_login_user():
     from fastapi.testclient import TestClient
     from jobpilot.web.app import app
+    import os
 
     client = TestClient(app)
+    email = f"login_{os.urandom(4).hex()}@example.com"
 
     client.post(
         "/api/auth/register",
         json={
-            "email": "login@example.com",
+            "email": email,
             "password": "TestPass123!",
             "name": "Login User",
         },
@@ -3661,7 +3663,7 @@ def test_login_user():
 
     response = client.post(
         "/api/auth/login",
-        data={"username": "login@example.com", "password": "TestPass123!"},
+        data={"username": email, "password": "TestPass123!"},
     )
     assert response.status_code == 200
     data = response.json()
@@ -3675,13 +3677,15 @@ test("Auth: login user", test_login_user)
 def test_login_wrong_password():
     from fastapi.testclient import TestClient
     from jobpilot.web.app import app
+    import os
 
     client = TestClient(app)
+    email = f"wrong_{os.urandom(4).hex()}@example.com"
 
     client.post(
         "/api/auth/register",
         json={
-            "email": "wrong@example.com",
+            "email": email,
             "password": "TestPass123!",
             "name": "Wrong User",
         },
@@ -3689,7 +3693,7 @@ def test_login_wrong_password():
 
     response = client.post(
         "/api/auth/login",
-        data={"username": "wrong@example.com", "password": "WrongPassword123!"},
+        data={"username": email, "password": "WrongPassword123!"},
     )
     assert response.status_code == 401
 
@@ -3713,23 +3717,25 @@ test("Auth: protected route requires token", test_protected_route)
 def test_get_me_with_token():
     from fastapi.testclient import TestClient
     from jobpilot.web.app import app
+    import os
 
     client = TestClient(app)
+    email = f"me_{os.urandom(4).hex()}@example.com"
 
     client.post(
         "/api/auth/register",
-        json={"email": "me@example.com", "password": "TestPass123!", "name": "Me User"},
+        json={"email": email, "password": "TestPass123!", "name": "Me User"},
     )
 
     login_response = client.post(
         "/api/auth/login",
-        data={"username": "me@example.com", "password": "TestPass123!"},
+        data={"username": email, "password": "TestPass123!"},
     )
     token = login_response.json()["access_token"]
 
     response = client.get("/api/auth/me", headers={"Authorization": f"Bearer {token}"})
     assert response.status_code == 200
-    assert response.json()["email"] == "me@example.com"
+    assert response.json()["email"] == email
 
 
 test("Auth: get me with token", test_get_me_with_token)
@@ -3738,13 +3744,15 @@ test("Auth: get me with token", test_get_me_with_token)
 def test_refresh_token():
     from fastapi.testclient import TestClient
     from jobpilot.web.app import app
+    import os
 
     client = TestClient(app)
+    email = f"refresh_{os.urandom(4).hex()}@example.com"
 
     client.post(
         "/api/auth/register",
         json={
-            "email": "refresh@example.com",
+            "email": email,
             "password": "TestPass123!",
             "name": "Refresh User",
         },
@@ -3752,7 +3760,7 @@ def test_refresh_token():
 
     login_response = client.post(
         "/api/auth/login",
-        data={"username": "refresh@example.com", "password": "TestPass123!"},
+        data={"username": email, "password": "TestPass123!"},
     )
     refresh_token = login_response.json()["refresh_token"]
 
@@ -3846,14 +3854,16 @@ test("Auth: input sanitization", test_input_sanitization)
 def test_admin_stats():
     from fastapi.testclient import TestClient
     from jobpilot.web.app import app
+    import os
 
     client = TestClient(app)
+    email = f"admin_{os.urandom(4).hex()}@example.com"
 
     # Register admin user
     client.post(
         "/api/auth/register",
         json={
-            "email": "admin@example.com",
+            "email": email,
             "password": "AdminPass123!",
             "name": "Admin User",
         },
@@ -3862,7 +3872,7 @@ def test_admin_stats():
     # Login
     login_response = client.post(
         "/api/auth/login",
-        data={"username": "admin@example.com", "password": "AdminPass123!"},
+        data={"username": email, "password": "AdminPass123!"},
     )
     token = login_response.json()["access_token"]
 

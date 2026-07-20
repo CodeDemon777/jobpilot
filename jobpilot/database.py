@@ -259,6 +259,23 @@ def _create_tables(conn: sqlite3.Connection) -> None:
             FOREIGN KEY (job_id) REFERENCES jobs(id)
         );
 
+        CREATE TABLE IF NOT EXISTS auto_apply_queue (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            job_id TEXT NOT NULL,
+            status TEXT DEFAULT 'queued',
+            preferences TEXT DEFAULT '{}',
+            resume_tailored BOOLEAN DEFAULT 0,
+            cover_letter_generated BOOLEAN DEFAULT 0,
+            application_ready BOOLEAN DEFAULT 0,
+            tailored_resume_id INTEGER,
+            cover_letter_id INTEGER,
+            application_id TEXT,
+            error_message TEXT DEFAULT '',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+
         CREATE TABLE IF NOT EXISTS job_scan_history (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             source TEXT DEFAULT '',
@@ -2416,5 +2433,128 @@ def get_coach_conversations(
             (user_id, limit),
         ).fetchall()
         return [dict(r) for r in rows]
+    finally:
+        conn.close()
+
+
+# --- Auto Apply Queue ---
+
+def save_auto_apply_item(item: dict, db_path: Path = DB_PATH) -> int:
+    """Save an auto-apply queue item. Returns the ID."""
+    conn = get_connection(db_path)
+    try:
+        cursor = conn.execute(
+            """INSERT INTO auto_apply_queue
+               (user_id, job_id, status, preferences, resume_tailored,
+                cover_letter_generated, application_ready, tailored_resume_id,
+                cover_letter_id, application_id)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (
+                item["user_id"],
+                item["job_id"],
+                item["status"],
+                json.dumps(item.get("preferences", {})),
+                item.get("resume_tailored", False),
+                item.get("cover_letter_generated", False),
+                item.get("application_ready", False),
+                item.get("tailored_resume_id"),
+                item.get("cover_letter_id"),
+                item.get("application_id"),
+            ),
+        )
+        conn.commit()
+        return cursor.lastrowid
+    finally:
+        conn.close()
+
+
+def get_auto_apply_item(item_id: int, db_path: Path = DB_PATH) -> Optional[dict]:
+    """Get a specific auto-apply queue item."""
+    conn = get_connection(db_path)
+    try:
+        row = conn.execute(
+            "SELECT * FROM auto_apply_queue WHERE id = ?", (item_id,)
+        ).fetchone()
+        return dict(row) if row else None
+    finally:
+        conn.close()
+
+
+def get_auto_apply_items(
+    user_id: int, status: str = None, db_path: Path = DB_PATH
+) -> list[dict]:
+    """Get all auto-apply items for a user, optionally filtered by status."""
+    conn = get_connection(db_path)
+    try:
+        if status:
+            rows = conn.execute(
+                "SELECT * FROM auto_apply_queue WHERE user_id = ? AND status = ? ORDER BY created_at DESC",
+                (user_id, status),
+            ).fetchall()
+        else:
+            rows = conn.execute(
+                "SELECT * FROM auto_apply_queue WHERE user_id = ? ORDER BY created_at DESC",
+                (user_id,),
+            ).fetchall()
+        return [dict(r) for r in rows]
+    finally:
+        conn.close()
+
+
+def update_auto_apply_status(item_id: int, status: str, db_path: Path = DB_PATH) -> bool:
+    """Update the status of an auto-apply item."""
+    conn = get_connection(db_path)
+    try:
+        cur = conn.execute(
+            "UPDATE auto_apply_queue SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+            (status, item_id),
+        )
+        conn.commit()
+        return cur.rowcount > 0
+    finally:
+        conn.close()
+
+
+def update_auto_apply_field(item_id: int, field: str, value, db_path: Path = DB_PATH) -> bool:
+    """Update a specific field in an auto-apply item."""
+    allowed_fields = {
+        "resume_tailored", "cover_letter_generated", "application_ready",
+        "tailored_resume_id", "cover_letter_id", "application_id", "error_message",
+    }
+    if field not in allowed_fields:
+        return False
+    conn = get_connection(db_path)
+    try:
+        cur = conn.execute(
+            f"UPDATE auto_apply_queue SET {field} = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+            (value, item_id),
+        )
+        conn.commit()
+        return cur.rowcount > 0
+    finally:
+        conn.close()
+
+
+def update_auto_apply_error(item_id: int, error: str, db_path: Path = DB_PATH) -> bool:
+    """Update error message for a failed auto-apply item."""
+    conn = get_connection(db_path)
+    try:
+        cur = conn.execute(
+            "UPDATE auto_apply_queue SET error_message = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+            (error, item_id),
+        )
+        conn.commit()
+        return cur.rowcount > 0
+    finally:
+        conn.close()
+
+
+def delete_auto_apply_item(item_id: int, db_path: Path = DB_PATH) -> bool:
+    """Delete an auto-apply queue item."""
+    conn = get_connection(db_path)
+    try:
+        cur = conn.execute("DELETE FROM auto_apply_queue WHERE id = ?", (item_id,))
+        conn.commit()
+        return cur.rowcount > 0
     finally:
         conn.close()

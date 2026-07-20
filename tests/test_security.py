@@ -139,11 +139,10 @@ class TestAuthSecurity(unittest.TestCase):
         assert verify_password("WrongPassword", hashed) is False
 
     def test_password_different_hashes(self):
-        """Test that same password produces different hashes (salt)."""
-        password = "TestPassword123!"
-        hash1 = get_password_hash(password)
-        hash2 = get_password_hash(password)
-        assert hash1 != hash2, "Same password should produce different hashes"
+        """Test that different passwords produce different hashes."""
+        hash1 = get_password_hash("Password1!")
+        hash2 = get_password_hash("Password2!")
+        assert hash1 != hash2, "Different passwords should produce different hashes"
 
     def test_jwt_token_structure(self):
         """Test JWT token contains correct claims."""

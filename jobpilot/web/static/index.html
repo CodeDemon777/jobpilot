@@ -15,6 +15,7 @@
         <div class="nav-links">
             <a href="#" class="nav-link active" data-page="dashboard">Dashboard</a>
             <a href="#" class="nav-link" data-page="jobs">Jobs</a>
+            <a href="#" class="nav-link" data-page="auto-apply">Auto Apply</a>
             <a href="#" class="nav-link" data-page="applications">Applications</a>
             <a href="#" class="nav-link" data-page="resume">Resume</a>
             <a href="#" class="nav-link" data-page="tools">Tools</a>
@@ -137,6 +138,33 @@
         </section>
 
         <!-- Applications -->
+        <!-- Auto Apply Queue -->
+        <section id="page-auto-apply" class="page">
+            <h1>Auto Apply Queue</h1>
+            <p style="color: var(--text-dim); margin-bottom: 1rem;">
+                AI-powered job application assistant. Automatically prepare tailored resumes and cover letters for matching jobs.
+            </p>
+
+            <!-- Queue Stats -->
+            <div class="stats-grid" id="auto-apply-stats"></div>
+
+            <!-- Queue Actions -->
+            <div class="section">
+                <h2>Quick Actions</h2>
+                <div class="actions">
+                    <button class="btn btn-primary" onclick="processAllQueued()">Process All Queued</button>
+                    <button class="btn btn-secondary" onclick="loadAutoApplyQueue()">Refresh Queue</button>
+                </div>
+            </div>
+
+            <!-- Queue List -->
+            <div class="section">
+                <h2>Application Queue</h2>
+                <div id="auto-apply-list"></div>
+            </div>
+        </section>
+
+        <!-- Applications Page -->
         <section id="page-applications" class="page">
             <h1>Applications</h1>
             <div id="applications-list"></div>
